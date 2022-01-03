@@ -45,6 +45,7 @@ public class AntiScamCommand extends DefaultCommand {
                         .name("channel")
                         .type(ApplicationCommandOption.Type.CHANNEL.getValue())
                         .description("The channel")
+                        .required(true)
                         .build())
                 .build());
 
@@ -134,6 +135,7 @@ public class AntiScamCommand extends DefaultCommand {
 
         event.reply(InteractionApplicationCommandCallbackSpec.builder()
                 .content("<a:loadingDownload:806936664521703435> Loading...")
+                .ephemeral(true)
                 .build()).block();
 
         ApplicationCommandInteractionOption first = list.get(0);
@@ -230,7 +232,7 @@ public class AntiScamCommand extends DefaultCommand {
         }
 
         ApplicationCommandInteractionOption firstOption = list.stream().filter(o ->
-                o.getName().equalsIgnoreCase("channel")).findFirst().orElse(null);
+                o.getName().equalsIgnoreCase("type")).findFirst().orElse(null);
 
         if (firstOption == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
