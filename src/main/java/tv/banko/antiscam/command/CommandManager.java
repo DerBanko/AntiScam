@@ -54,7 +54,7 @@ public class CommandManager {
                 }
             }
             return Mono.empty();
-        }).doOnError(Throwable::printStackTrace).subscribe();
+        }).onErrorContinue((throwable, o) -> throwable.printStackTrace()).subscribe();
     }
 
 }

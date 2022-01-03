@@ -30,14 +30,13 @@ public class LogCollection {
 
         Document document = new Document().append("guildId", guild.asString()).append("channelId", channel.asString());
 
-        if (collection.find(Filters.and(Filters.eq("channelId", channel.asString()),
-                Filters.eq("guildId", guild.asString()))).first() == null) {
+        if (collection.find(Filters.and(Filters.eq("guildId", guild.asString()))).first() == null) {
             collection.insertOne(document);
             return;
         }
 
-        collection.updateOne(Filters.and(Filters.eq("channelId", channel.asString()),
-                Filters.eq("guildId", guild.asString())), new Document("$set", document));
+        collection.updateOne(Filters.and(Filters.eq("guildId", guild.asString())),
+                new Document("$set", document));
     }
 
     public void removeChannel(Snowflake guild) {
@@ -56,19 +55,22 @@ public class LogCollection {
         Document document = collection.find(Filters.eq("guildId", guild.asString())).first();
 
         if (document == null) {
+            System.out.println("document null");
             return;
         }
 
-        Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(document.getString("channelId"))).blockOptional();
+        Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(
+                document.getString("channelId"))).blockOptional();
 
         if (optional.isEmpty()) {
             removeChannel(guild);
+            System.out.println("rm c");
             return;
         }
 
         GuildMessageChannel channel = (GuildMessageChannel) optional.get();
 
-        channel.createMessage(spec).blockOptional();
+        channel.createMessage(spec).onErrorStop().block();
     }
 
     private String getCollectionName() {

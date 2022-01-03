@@ -65,6 +65,7 @@ public class AntiScam {
 
     public void punish(Message message) {
         mongoDB.getSettingsCollection().punish(message);
+        sendMessage(message);
     }
 
     public void sendMessage(Message message) {
@@ -88,6 +89,7 @@ public class AntiScam {
             return;
         }
 
+        System.out.println("8");
         GuildMessageChannel channel = (GuildMessageChannel) optionalChannel.get();
 
         mongoDB.getLogCollection().sendMessage(snowflake.get(), EmbedCreateSpec.builder()

@@ -19,7 +19,6 @@ public class MessageCreateListener extends DefaultListener {
                 }
 
                 antiScam.punish(event.getMessage());
-                antiScam.sendMessage(event.getMessage());
                 return Mono.empty();
             } catch (Exception e) {
                 e.printStackTrace();
