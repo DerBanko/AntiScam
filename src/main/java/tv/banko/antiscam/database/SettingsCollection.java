@@ -43,7 +43,7 @@ public class SettingsCollection {
             return;
         }
 
-        Document document = collection.find(Filters.eq("guildId", optional.get())).first();
+        Document document = collection.find(Filters.eq("guildId", optional.get().asString())).first();
         PunishmentType type;
 
         if (document == null || !document.containsKey("punishment")) {
