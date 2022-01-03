@@ -7,13 +7,16 @@ import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.presence.ClientActivity;
 import discord4j.core.object.presence.ClientPresence;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
+import tv.banko.antiscam.listener.GuildEnterListener;
 import tv.banko.antiscam.listener.MessageCreateListener;
 
 import java.time.Instant;
@@ -23,16 +26,19 @@ public class AntiScam {
 
     private final DiscordClient client;
     private final GatewayDiscordClient gateway;
+    private final CommandManager command;
 
     private final MongoDB mongoDB;
     private final ScamAPI scamAPI;
 
     public AntiScam(String token) {
         this.client = DiscordClient.create(token);
-        this.gateway = client.gateway().setEnabledIntents(IntentSet.all()).login().block();
+        this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MESSAGES,
+                Intent.GUILD_BANS, Intent.GUILD_INTEGRATIONS, Intent.GUILDS, Intent.GUILD_MEMBERS)).login().block();
 
         this.scamAPI = new ScamAPI();
         this.mongoDB = new MongoDB(this);
+        this.command = new CommandManager(this);
 
         if (this.gateway == null) {
             System.out.println("null");
@@ -40,10 +46,7 @@ public class AntiScam {
         }
 
         new MessageCreateListener(this, this.client, this.gateway);
-
-        this.gateway.updatePresence(ClientPresence.invisible()).block();
-
-        new CommandManager(this);
+        new GuildEnterListener(this, this.client, this.gateway);
 
         gateway.onDisconnect().block();
     }
@@ -103,5 +106,9 @@ public class AntiScam {
 
     public MongoDB getMongoDB() {
         return mongoDB;
+    }
+
+    public CommandManager getCommand() {
+        return command;
     }
 }

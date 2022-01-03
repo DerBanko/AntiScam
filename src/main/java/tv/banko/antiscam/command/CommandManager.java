@@ -17,11 +17,15 @@ public class CommandManager {
         this.antiScam = antiScam;
         this.commands = new ArrayList<>();
 
-        antiScam.getGateway().getGuilds().toStream().forEach(this::registerGuild);
+        //antiScam.getGateway().getGuilds().toStream().forEach(this::registerGuild);
         registerEvent();
     }
 
     public void registerGuild(Guild guild) {
+        if (commands.stream().anyMatch(defaultCommand -> defaultCommand.guild.equals(guild))) {
+            return;
+        }
+
         addCommand(new AntiScamCommand(antiScam, guild));
     }
 
