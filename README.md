@@ -1,6 +1,6 @@
 # ⚠️ AntiScam Discord Bot
 
-A simple Discord bot that helps to manage sent [Scam](https://de.wikipedia.org/wiki/Scam) Messages on Discord Server. 
+A simple Discord bot that helps you to manage sent [Scam](https://de.wikipedia.org/wiki/Scam) Messages on your Discord Server. 
 
 ## Usage
 
