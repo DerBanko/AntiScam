@@ -3,6 +3,7 @@ package tv.banko.antiscam;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
@@ -11,34 +12,49 @@ import discord4j.core.object.presence.ClientActivity;
 import discord4j.core.object.presence.ClientPresence;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.discordjson.json.MemberData;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import discord4j.rest.route.Routes;
+import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
 import tv.banko.antiscam.listener.GuildEnterListener;
 import tv.banko.antiscam.listener.MessageCreateListener;
+import tv.banko.antiscam.listener.MonitorListeners;
+import tv.banko.antiscam.manage.Monitor;
+import tv.banko.antiscam.manage.Stats;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class AntiScam {
 
     private final DiscordClient client;
     private final GatewayDiscordClient gateway;
-    private final CommandManager command;
 
     private final MongoDB mongoDB;
     private final ScamAPI scamAPI;
+    private final DiscordAPI discordAPI;
+    private final CommandManager command;
+
+    private final Monitor monitor;
+    private final Stats stats;
 
     public AntiScam(String token) {
         this.client = DiscordClient.create(token);
         this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MESSAGES,
-                Intent.GUILD_BANS, Intent.GUILD_INTEGRATIONS, Intent.GUILDS, Intent.GUILD_MEMBERS)).login().block();
+                Intent.GUILD_INTEGRATIONS, Intent.GUILDS)).login().block();
 
         this.scamAPI = new ScamAPI();
+        this.discordAPI = new DiscordAPI(token);
         this.mongoDB = new MongoDB(this);
         this.command = new CommandManager(this);
+        this.monitor = new Monitor(this);
+        this.stats = new Stats(this);
 
         if (this.gateway == null) {
             System.out.println("null");
@@ -47,6 +63,11 @@ public class AntiScam {
 
         new MessageCreateListener(this, this.client, this.gateway);
         new GuildEnterListener(this, this.client, this.gateway);
+        new MonitorListeners(this, this.client, this.gateway);
+
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.gateway
+                .updatePresence(ClientPresence.online(ClientActivity.competing("Scam Links on " + this.client
+                        .getGuilds().count().block() + " Servers"))).block(), 0, 10, TimeUnit.SECONDS);
 
         gateway.onDisconnect().block();
     }
@@ -64,8 +85,8 @@ public class AntiScam {
     }
 
     public void punish(Message message) {
-        mongoDB.getSettingsCollection().punish(message);
         sendMessage(message);
+        mongoDB.getSettingsCollection().punish(message);
     }
 
     public void sendMessage(Message message) {
@@ -75,7 +96,7 @@ public class AntiScam {
             return;
         }
 
-        Optional<Member> optionalMember = message.getAuthorAsMember().blockOptional();
+        Optional<Member> optionalMember = message.getAuthorAsMember().onErrorStop().blockOptional();
 
         if(optionalMember.isEmpty()) {
             return;
@@ -83,14 +104,15 @@ public class AntiScam {
 
         Member member = optionalMember.get();
 
-        Optional<MessageChannel> optionalChannel = message.getChannel().blockOptional();
+        Optional<MessageChannel> optionalChannel = message.getChannel().onErrorStop().blockOptional();
 
         if(optionalChannel.isEmpty()) {
             return;
         }
 
-        System.out.println("8");
         GuildMessageChannel channel = (GuildMessageChannel) optionalChannel.get();
+
+        stats.sendScam(message);
 
         mongoDB.getLogCollection().sendMessage(snowflake.get(), EmbedCreateSpec.builder()
                 .title(":no_entry_sign: | Scam found")
@@ -110,7 +132,15 @@ public class AntiScam {
         return mongoDB;
     }
 
-    public CommandManager getCommand() {
-        return command;
+    public Monitor getMonitor() {
+        return monitor;
+    }
+
+    public Stats getStats() {
+        return stats;
+    }
+
+    public DiscordAPI getDiscordAPI() {
+        return discordAPI;
     }
 }

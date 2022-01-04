@@ -1,10 +1,10 @@
 package tv.banko.antiscam.command;
 
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.command.ApplicationCommandOption;
-import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
@@ -20,15 +20,15 @@ import tv.banko.antiscam.punishment.PunishmentType;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 public class AntiScamCommand extends DefaultCommand {
 
     private final AntiScam antiScam;
 
-    public AntiScamCommand(AntiScam antiScam, Guild guild) {
-        super(antiScam.getClient(), guild, "antiscam");
+    public AntiScamCommand(AntiScam antiScam) {
+        super(antiScam.getClient(), "antiscam");
         this.antiScam = antiScam;
 
         ImmutableApplicationCommandRequest.Builder request = ApplicationCommandRequest.builder()
@@ -71,6 +71,11 @@ public class AntiScamCommand extends DefaultCommand {
                 .description("Set the punishment when users send scam messages")
                 .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
                 .addOption(builder.build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("duration")
+                        .description("The duration of the punishment in seconds (only relevant for timeouts)")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .build())
                 .build());
 
         /* TODO: Check message history
@@ -204,9 +209,19 @@ public class AntiScamCommand extends DefaultCommand {
                     .build());
         }
 
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
         GuildMessageChannel messageChannel = (GuildMessageChannel) channel;
 
-        this.antiScam.getMongoDB().getLogCollection().setChannel(guild.getId(), messageChannel.getId());
+        this.antiScam.getMongoDB().getLogCollection().setChannel(optionalSnowflake.get(), messageChannel.getId());
+        this.antiScam.getMonitor().sendLogChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), messageChannel);
 
         return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
@@ -252,9 +267,20 @@ public class AntiScamCommand extends DefaultCommand {
 
         String value = firstValue.asString();
 
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
         switch (value) {
             case "KICK" -> {
-                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(guild.getId(), PunishmentType.kick());
+                PunishmentType type = PunishmentType.kick();
+                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
+                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
                         .addEmbed(EmbedCreateSpec.builder()
@@ -265,7 +291,9 @@ public class AntiScamCommand extends DefaultCommand {
                         .build());
             }
             case "BAN" -> {
-                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(guild.getId(), PunishmentType.ban());
+                PunishmentType type = PunishmentType.ban();
+                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
+                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
                         .addEmbed(EmbedCreateSpec.builder()
@@ -275,8 +303,36 @@ public class AntiScamCommand extends DefaultCommand {
                                 .build())
                         .build());
             }
+            case "TIMEOUT" -> {
+                ApplicationCommandInteractionOption secondOption = list.stream().filter(o ->
+                        o.getName().equalsIgnoreCase("duration")).findFirst().orElse(null);
+
+                int duration = 600;
+
+                if (secondOption != null) {
+                    ApplicationCommandInteractionOptionValue secondValue = secondOption.getValue().orElse(null);
+
+                    if (secondValue != null) {
+                        duration = (int) secondValue.asLong();
+                    }
+                }
+
+                PunishmentType type = PunishmentType.timeout(duration);
+                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
+                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
+                return event.editReply(InteractionReplyEditSpec.builder()
+                        .contentOrNull(null)
+                        .addEmbed(EmbedCreateSpec.builder()
+                                .title(":white_check_mark: | Punishment set")
+                                .description("Successfully changed punishment channel to `timeout " + duration + "s`.")
+                                .timestamp(Instant.now())
+                                .build())
+                        .build());
+            }
             default -> {
-                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(guild.getId(), PunishmentType.delete());
+                PunishmentType type = PunishmentType.delete();
+                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
+                this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
                         .addEmbed(EmbedCreateSpec.builder()

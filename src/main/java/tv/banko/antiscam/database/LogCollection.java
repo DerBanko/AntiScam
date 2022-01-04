@@ -30,12 +30,12 @@ public class LogCollection {
 
         Document document = new Document().append("guildId", guild.asString()).append("channelId", channel.asString());
 
-        if (collection.find(Filters.and(Filters.eq("guildId", guild.asString()))).first() == null) {
+        if (collection.find(Filters.eq("guildId", guild.asString())).first() == null) {
             collection.insertOne(document);
             return;
         }
 
-        collection.updateOne(Filters.and(Filters.eq("guildId", guild.asString())),
+        collection.updateOne(Filters.eq("guildId", guild.asString()),
                 new Document("$set", document));
     }
 
@@ -55,7 +55,6 @@ public class LogCollection {
         Document document = collection.find(Filters.eq("guildId", guild.asString())).first();
 
         if (document == null) {
-            System.out.println("document null");
             return;
         }
 
@@ -64,7 +63,6 @@ public class LogCollection {
 
         if (optional.isEmpty()) {
             removeChannel(guild);
-            System.out.println("rm c");
             return;
         }
 

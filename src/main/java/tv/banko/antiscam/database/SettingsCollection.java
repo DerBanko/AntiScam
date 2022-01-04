@@ -5,16 +5,19 @@ import com.mongodb.client.model.Filters;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
 import org.bson.Document;
+import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.punishment.PunishmentType;
 
 import java.util.Optional;
 
 public class SettingsCollection {
 
+    private final AntiScam antiScam;
     private final String collectionName;
     private final MongoDB mongoDB;
 
-    public SettingsCollection(MongoDB mongoDB) {
+    public SettingsCollection(AntiScam antiScam, MongoDB mongoDB) {
+        this.antiScam = antiScam;
         this.collectionName = "settings";
         this.mongoDB = mongoDB;
     }
@@ -52,7 +55,7 @@ public class SettingsCollection {
             type = PunishmentType.fromString(document.getString("punishment"));
         }
 
-        type.punish(message);
+        type.punish(antiScam, message);
     }
 
     private String getCollectionName() {

@@ -3,6 +3,7 @@ package tv.banko.antiscam.punishment;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.BanQuerySpec;
+import tv.banko.antiscam.AntiScam;
 
 public record PunishmentType(String action, int duration) {
 
@@ -18,29 +19,38 @@ public record PunishmentType(String action, int duration) {
         return new PunishmentType("DELETE", 0);
     }
 
+    public static PunishmentType timeout(int duration) {
+        return new PunishmentType("TIMEOUT", duration);
+    }
+
     public static PunishmentType fromString(String s) {
         return new PunishmentType(s.split("#")[0], Integer.parseInt(s.split("#")[1]));
     }
 
-    public void punish(Message message) {
+    public void punish(AntiScam antiScam, Message message) {
         message.delete().onErrorStop().block();
         Member member = message.getAuthorAsMember().onErrorStop().blockOptional().orElse(null);
 
         if (member == null) {
             return;
         }
-
-        switch (action) {
-            case "KICK": {
-                member.kick("message contained scam content").onErrorStop().block();
+        try {
+            switch (action) {
+                case "KICK": {
+                    member.kick("message contained scam content").onErrorStop().block();
+                }
+                case "BAN": {
+                    member.ban(BanQuerySpec.builder()
+                            .reason("message contained scam content")
+                            .deleteMessageDays(0)
+                            .build()).onErrorStop().block();
+                }
+                case "TIMEOUT": {
+                    System.out.println(antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
+                            (duration * 1000L)));
+                }
             }
-            case "BAN": {
-                member.ban(BanQuerySpec.builder()
-                        .reason("message contained scam content")
-                        .deleteMessageDays(0)
-                        .build()).onErrorStop().block();
-            }
-        }
+        } catch (Exception ignored) { }
     }
 
     @Override

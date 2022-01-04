@@ -14,10 +14,17 @@ public class MessageCreateListener extends DefaultListener {
 
         gateway.getEventDispatcher().on(MessageCreateEvent.class, event -> {
             try {
+                antiScam.getStats().addMessage();
+
+                if(event.getMessage().getContent().equalsIgnoreCase("")) {
+                    return Mono.empty();
+                }
+
                 if (!antiScam.isScam(event.getMessage().getContent())) {
                     return Mono.empty();
                 }
 
+                antiScam.getStats().addScam();
                 antiScam.punish(event.getMessage());
                 return Mono.empty();
             } catch (Exception e) {

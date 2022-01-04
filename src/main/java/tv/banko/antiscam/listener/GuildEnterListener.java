@@ -16,12 +16,6 @@ public class GuildEnterListener extends DefaultListener {
 
         gateway.getEventDispatcher().on(GuildCreateEvent.class, event -> {
             try {
-
-                this.gateway.updatePresence(ClientPresence.online(ClientActivity.competing("Scam Links on " +
-                        this.client.getGuilds().count().block() + " Servers"))).block();
-
-                this.antiScam.getCommand().registerGuild(event.getGuild());
-
                 return Mono.empty();
             } catch (Exception e) {
                 e.printStackTrace();
