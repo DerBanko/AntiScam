@@ -19,6 +19,7 @@ public class MongoDB {
 
     private LogCollection logCollection;
     private SettingsCollection settingsCollection;
+    private ScamCollection scamCollection;
 
     public MongoDB(AntiScam antiScam) {
         Logger logger = Logger.getLogger("org.mongodb.driver");
@@ -35,6 +36,7 @@ public class MongoDB {
 
         logCollection = new LogCollection(antiScam, this);
         settingsCollection = new SettingsCollection(antiScam, this);
+        scamCollection = new ScamCollection(antiScam, this);
 
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
             close();
@@ -44,6 +46,7 @@ public class MongoDB {
 
             logCollection = new LogCollection(antiScam, MongoDB.this);
             settingsCollection = new SettingsCollection(antiScam, this);
+            scamCollection = new ScamCollection(antiScam, this);
 
         }, 30, 30, TimeUnit.MINUTES);
     }
@@ -62,6 +65,10 @@ public class MongoDB {
 
     public SettingsCollection getSettingsCollection() {
         return settingsCollection;
+    }
+
+    public ScamCollection getScamCollection() {
+        return scamCollection;
     }
 
     public void close() {

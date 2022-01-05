@@ -3,42 +3,34 @@ package tv.banko.antiscam.api;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import discord4j.common.util.Snowflake;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import tv.banko.antiscam.AntiScam;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.Objects;
 
 public class ScamAPI {
 
+    private final AntiScam antiScam;
     private final OkHttpClient client;
-    private SafebrowsingAPI safebrowsing;
 
     private JsonArray domains;
     private long updateIn;
 
-    public ScamAPI() {
+    public ScamAPI(AntiScam antiScam) {
+        this.antiScam = antiScam;
         this.client = new OkHttpClient();
-
-        try {
-            this.safebrowsing = new SafebrowsingAPI();
-        } catch (GeneralSecurityException | IOException e) {
-            e.printStackTrace();
-        }
 
         this.updateIn = 0;
         update();
     }
 
-    public boolean containsScam(String message) {
-        if(updateIn < System.currentTimeMillis()) {
+    public boolean containsScam(String message, Snowflake guildId) {
+        if (updateIn < System.currentTimeMillis()) {
             update();
         }
 
@@ -50,7 +42,7 @@ public class ScamAPI {
             }
         }
 
-        return safebrowsing.isScam(message);
+        return antiScam.getMongoDB().getScamCollection().containsScam(message, guildId);
     }
 
     private void update() {
@@ -60,7 +52,7 @@ public class ScamAPI {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if(response.body() == null) {
+            if (response.body() == null) {
                 return;
             }
 

@@ -3,7 +3,6 @@ package tv.banko.antiscam;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
@@ -12,17 +11,16 @@ import discord4j.core.object.presence.ClientActivity;
 import discord4j.core.object.presence.ClientPresence;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
-import discord4j.discordjson.json.MemberData;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
-import discord4j.rest.route.Routes;
 import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
 import tv.banko.antiscam.listener.GuildEnterListener;
-import tv.banko.antiscam.listener.MessageCreateListener;
+import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
+import tv.banko.antiscam.manage.MessageManager;
 import tv.banko.antiscam.manage.Monitor;
 import tv.banko.antiscam.manage.Stats;
 
@@ -49,19 +47,21 @@ public class AntiScam {
         this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MESSAGES,
                 Intent.GUILD_INTEGRATIONS, Intent.GUILDS)).login().block();
 
-        this.scamAPI = new ScamAPI();
+        this.scamAPI = new ScamAPI(this);
         this.discordAPI = new DiscordAPI(token);
         this.mongoDB = new MongoDB(this);
         this.command = new CommandManager(this);
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
 
+        //new MessageManager(this);
+
         if (this.gateway == null) {
             System.out.println("null");
             return;
         }
 
-        new MessageCreateListener(this, this.client, this.gateway);
+        new MessageListeners(this, this.client, this.gateway);
         new GuildEnterListener(this, this.client, this.gateway);
         new MonitorListeners(this, this.client, this.gateway);
 
@@ -80,8 +80,8 @@ public class AntiScam {
         return gateway;
     }
 
-    public boolean isScam(String message) {
-        return scamAPI.containsScam(message);
+    public boolean isScam(String message, Snowflake guildId) {
+        return scamAPI.containsScam(message.replace("\\", ""), guildId);
     }
 
     public void punish(Message message) {
@@ -92,13 +92,13 @@ public class AntiScam {
     public void sendMessage(Message message) {
         Optional<Snowflake> snowflake = message.getGuildId();
 
-        if(snowflake.isEmpty()) {
+        if (snowflake.isEmpty()) {
             return;
         }
 
         Optional<Member> optionalMember = message.getAuthorAsMember().onErrorStop().blockOptional();
 
-        if(optionalMember.isEmpty()) {
+        if (optionalMember.isEmpty()) {
             return;
         }
 
@@ -106,7 +106,7 @@ public class AntiScam {
 
         Optional<MessageChannel> optionalChannel = message.getChannel().onErrorStop().blockOptional();
 
-        if(optionalChannel.isEmpty()) {
+        if (optionalChannel.isEmpty()) {
             return;
         }
 

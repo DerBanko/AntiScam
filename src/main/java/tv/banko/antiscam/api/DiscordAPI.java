@@ -1,20 +1,32 @@
 package tv.banko.antiscam.api;
 
 import discord4j.core.object.entity.Member;
+import discord4j.rest.request.Router;
+import discord4j.rest.route.Route;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.TimeZone;
 
 public class DiscordAPI {
 
     private final String token;
     private final OkHttpClient client;
 
+    private final SimpleDateFormat format;
+
     public DiscordAPI(String token) {
         this.token = token;
         this.client = new OkHttpClient();
+
+        this.format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+        format.setTimeZone(TimeZone.getTimeZone("CET"));
     }
 
     public boolean timeoutMember(Member member, long timestamp) {
@@ -22,10 +34,9 @@ public class DiscordAPI {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", token)
-                .addHeader("User-Agent", "Mozilla/5.0")
+                .header("Authorization", "Bot " + token)
                 .patch(RequestBody.create(("{\"communication_disabled_until\":\"" +
-                                DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(Instant.ofEpochMilli(timestamp)) + "\"}").getBytes(),
+                        format.format(new Date(timestamp)) + "\"}").getBytes(),
                         MediaType.parse("application/json")))
                 .build();
 
@@ -35,6 +46,5 @@ public class DiscordAPI {
             e.printStackTrace();
             return false;
         }
-
     }
 }

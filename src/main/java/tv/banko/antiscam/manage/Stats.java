@@ -1,10 +1,7 @@
 package tv.banko.antiscam.manage;
 
 import discord4j.common.util.Snowflake;
-import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.Webhook;
+import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -75,12 +72,32 @@ public class Stats {
                 .build()).onErrorStop().block();
     }
 
-    public void sendStats() {
-        this.reset = System.currentTimeMillis() + (1000 * 60 * 60);
-        this.scam = 0;
-        this.messages = 0;
+    public void sendNewPhrase(String phrase, Snowflake userId, Snowflake guildId) {
+        User user = antiScam.getGateway().getUserById(userId).blockOptional().orElse(null);
+        Guild guild = antiScam.getGateway().getGuildById(guildId).blockOptional().orElse(null);
 
+        assert user != null;
+        assert guild != null;
         webhook.execute(WebhookExecuteSpec.builder()
+                .content("@everyone")
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":newspaper: | New phrase")
+                        .description("**Applicant**: **" + user.getTag() + "**\n" +
+                                "**Guild**: **" + guild.getName() + "**\n")
+                        .addField(EmbedCreateFields.Field.of("Phrase", phrase, false))
+                        .addField(EmbedCreateFields.Field.of("Approve", "`/antiscam approve " + phrase + "`", false))
+                        .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                                "userId = " + user.getId().asString() + "\n" +
+                                "guildId = " + guild.getId().asString() + "\n" +
+                                "```", false))
+                        .build())
+                .build()).onErrorStop().block();
+    }
+
+    public void sendStats() {
+        webhook.execute(WebhookExecuteSpec.builder()
+                .content("@everyone")
                 .addEmbed(EmbedCreateSpec.builder()
                         .title(":newspaper: | Stats of last 60 minutes")
                         .description("**Guild Count**: **" + antiScam.getGateway().getGuilds().count().block() + "**\n" +
@@ -89,6 +106,10 @@ public class Stats {
                                 "**Percentage**: **" + (messages == 0 ? 0 : ((scam * 100) / messages)) + "%**\n")
                         .build())
                 .build()).onErrorStop().block();
+
+        this.reset = System.currentTimeMillis() + (1000 * 60 * 60);
+        this.scam = 0;
+        this.messages = 0;
     }
 
 }

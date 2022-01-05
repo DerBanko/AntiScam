@@ -6,7 +6,7 @@
 
     <groupId>tv.banko</groupId>
     <artifactId>antiscam</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -85,12 +85,6 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>4.9.2</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.apis/google-api-services-safebrowsing -->
-        <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-safebrowsing</artifactId>
-            <version>v4-rev44-1.23.0</version>
         </dependency>
     </dependencies>
 </project>
