@@ -28,12 +28,14 @@ public record PunishmentType(String action, int duration) {
     }
 
     public void punish(AntiScam antiScam, Message message) {
-        message.delete().onErrorStop().block();
         Member member = message.getAuthorAsMember().onErrorStop().blockOptional().orElse(null);
+
+        message.delete().onErrorStop().block();
 
         if (member == null) {
             return;
         }
+
         try {
             switch (action) {
                 case "KICK": {
@@ -50,7 +52,9 @@ public record PunishmentType(String action, int duration) {
                             (duration * 1000L)));
                 }
             }
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

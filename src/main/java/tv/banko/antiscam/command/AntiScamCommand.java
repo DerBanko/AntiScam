@@ -22,14 +22,19 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class AntiScamCommand extends DefaultCommand {
 
+    private final String BOT_OWNER_ID = System.getenv("BOT_OWNER_ID");
+
     private final AntiScam antiScam;
+    private final Pattern pattern;
 
     public AntiScamCommand(AntiScam antiScam) {
         super(antiScam.getClient(), "antiscam");
         this.antiScam = antiScam;
+        this.pattern = Pattern.compile("https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)");
 
         ImmutableApplicationCommandRequest.Builder request = ApplicationCommandRequest.builder()
                 .name(commandName)
@@ -49,6 +54,48 @@ public class AntiScamCommand extends DefaultCommand {
                         .build())
                 .build());
 
+        // /antiscam add <url>
+
+        request.addOption(ApplicationCommandOptionData.builder()
+                .name("add")
+                .description("Add a url to the system")
+                .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("url")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .description("The url")
+                        .required(true)
+                        .build())
+                .build());
+
+        // /antiscam remove <url>
+
+        request.addOption(ApplicationCommandOptionData.builder()
+                .name("remove")
+                .description("Remove a url from the system")
+                .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("url")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .description("The url")
+                        .required(true)
+                        .build())
+                .build());
+
+        // /antiscam approve <url>
+
+        request.addOption(ApplicationCommandOptionData.builder()
+                .name("approve")
+                .description("Approve a url (only for bot owner)")
+                .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("url")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .description("The url")
+                        .required(true)
+                        .build())
+                .build());
+
         // /antiscam punishment <Choice>
 
         ImmutableApplicationCommandOptionData.Builder builder = ApplicationCommandOptionData.builder()
@@ -57,7 +104,7 @@ public class AntiScamCommand extends DefaultCommand {
                 .type(ApplicationCommandOption.Type.STRING.getValue())
                 .required(true);
 
-        for (String type : new String[]{"Message Delete#DELETE", "Kick Member#KICK", "Ban Member#BAN"}) {
+        for (String type : new String[]{"Message Delete#DELETE", "Kick Member#KICK", "Ban Member#BAN", "Timeout Member#TIMEOUT"}) {
             String[] s = type.split("#");
 
             builder.addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -151,6 +198,18 @@ public class AntiScamCommand extends DefaultCommand {
 
         if (first.getName().equalsIgnoreCase("punishment")) {
             return setPunishment(event);
+        }
+
+        if (first.getName().equalsIgnoreCase("add")) {
+            return addURL(event);
+        }
+
+        if (first.getName().equalsIgnoreCase("remove")) {
+            return removeURL(event);
+        }
+
+        if (first.getName().equalsIgnoreCase("approve")) {
+            return approveURL(event);
         }
 
         return event.editReply(InteractionReplyEditSpec.builder()
@@ -345,6 +404,246 @@ public class AntiScamCommand extends DefaultCommand {
         }
     }
 
+    private Mono<?> addURL(ChatInputInteractionEvent event) {
+
+        ApplicationCommandInteractionOption first = event.getOptions().get(0);
+
+        List<ApplicationCommandInteractionOption> list = first.getOptions();
+
+        if (list.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOption firstOption = list.stream().filter(o ->
+                o.getName().equalsIgnoreCase("url")).findFirst().orElse(null);
+
+        if (firstOption == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOptionValue firstValue = firstOption.getValue().orElse(null);
+
+        if (firstValue == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        String value = firstValue.asString().toLowerCase();
+
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        if(!pattern.matcher(value).matches()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("no_url"))
+                    .build());
+        }
+
+        if (antiScam.isScam(value, optionalSnowflake.get())) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("already_registered"))
+                    .build());
+        }
+
+        if (antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(value)) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("needs_approvement"))
+                    .build());
+        }
+
+        antiScam.getMongoDB().getScamCollection().addPhrase(value, event.getInteraction().getUser().getId(),
+                optionalSnowflake.get());
+
+        return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":white_check_mark: | URL added")
+                        .description("Successfully added the url to the system.")
+                        .timestamp(Instant.now())
+                        .build())
+                .build());
+    }
+
+    private Mono<?> removeURL(ChatInputInteractionEvent event) {
+
+        ApplicationCommandInteractionOption first = event.getOptions().get(0);
+
+        List<ApplicationCommandInteractionOption> list = first.getOptions();
+
+        if (list.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOption firstOption = list.stream().filter(o ->
+                o.getName().equalsIgnoreCase("url")).findFirst().orElse(null);
+
+        if (firstOption == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOptionValue firstValue = firstOption.getValue().orElse(null);
+
+        if (firstValue == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        String value = firstValue.asString().toLowerCase();
+
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        Snowflake guildId = optionalSnowflake.get();
+
+        if(!pattern.matcher(value).matches()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("no_url"))
+                    .build());
+        }
+
+        if(!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
+            if (!antiScam.isScam(value, optionalSnowflake.get())) {
+                return event.editReply(InteractionReplyEditSpec.builder()
+                        .contentOrNull(null)
+                        .addEmbed(getEmbedToRespond("already_registered"))
+                        .build());
+            }
+
+            if (!antiScam.getMongoDB().getScamCollection().isRegisteredByGuild(value, guildId)) {
+                return event.editReply(InteractionReplyEditSpec.builder()
+                        .contentOrNull(null)
+                        .addEmbed(getEmbedToRespond("already_approved"))
+                        .build());
+            }
+        }
+
+        antiScam.getMongoDB().getScamCollection().removePhrase(value);
+
+        return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":white_check_mark: | URL removed")
+                        .description("Successfully removed the url from the system.")
+                        .timestamp(Instant.now())
+                        .build())
+                .build());
+    }
+
+    private Mono<?> approveURL(ChatInputInteractionEvent event) {
+
+        if(!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("admin_no_permission"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOption first = event.getOptions().get(0);
+
+        List<ApplicationCommandInteractionOption> list = first.getOptions();
+
+        if (list.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOption firstOption = list.stream().filter(o ->
+                o.getName().equalsIgnoreCase("url")).findFirst().orElse(null);
+
+        if (firstOption == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ApplicationCommandInteractionOptionValue firstValue = firstOption.getValue().orElse(null);
+
+        if (firstValue == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        String value = firstValue.asString().toLowerCase();
+
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        if(!pattern.matcher(value).matches()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("no_url"))
+                    .build());
+        }
+
+        if (!antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(value)) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("admin_no_phrase"))
+                    .build());
+        }
+
+        if (antiScam.getMongoDB().getScamCollection().isApprovedPhrase(value)) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("admin_already_approved"))
+                    .build());
+        }
+
+        antiScam.getMongoDB().getScamCollection().approvePhrase(value);
+
+        return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":white_check_mark: | URL approved")
+                        .description("Successfully approved the url.")
+                        .timestamp(Instant.now())
+                        .build())
+                .build());
+    }
+
     private EmbedCreateSpec getEmbedToRespond(String key) {
         return switch (key) {
             case "no_permission" -> EmbedCreateSpec.builder()
@@ -370,6 +669,41 @@ public class AntiScamCommand extends DefaultCommand {
             case "no_text_channel" -> EmbedCreateSpec.builder()
                     .title(":warning: | An error occurred")
                     .description("This channel is **no text channel**.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "already_registered" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("This phrase is **already registered**.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "needs_approvement" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("This phrase is **already registered** but needs to be **approved** by Banko.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "already_approved" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("This phrase is a **public phrase** (already approved by Banko). You cannot remove this phrase!")
+                    .timestamp(Instant.now())
+                    .build();
+            case "no_url" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("URLs have to start with **http://** or **https://** and end with a **domain ending**.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "admin_already_approved" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("This phrase is already approved.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "admin_no_phrase" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("This phrase is not registered.")
+                    .timestamp(Instant.now())
+                    .build();
+            case "admin_no_permission" -> EmbedCreateSpec.builder()
+                    .title(":warning: | An error occurred")
+                    .description("You cannot use this subcommand.")
                     .timestamp(Instant.now())
                     .build();
             default -> EmbedCreateSpec.builder()
