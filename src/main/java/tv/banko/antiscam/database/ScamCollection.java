@@ -66,7 +66,19 @@ public class ScamCollection {
         }
 
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
-        return collection.find(Filters.eq("guildId", guildId.asString())).first() != null;
+
+        for (Document document : collection.find(Filters.eq("guildId", guildId.asString()))) {
+
+            if(document == null) {
+                continue;
+            }
+
+            if(phrase.toLowerCase().contains(document.getString("phrase"))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean containsScam(String phrase) {

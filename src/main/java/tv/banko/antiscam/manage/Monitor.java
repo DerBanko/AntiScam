@@ -47,6 +47,34 @@ public class Monitor {
                 .build()).onErrorStop().block();
     }
 
+    public void sendGuildJoin(Guild guild) {
+        webhook.execute(WebhookExecuteSpec.builder()
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":heavy_plus_sign: | Bot added")
+                        .description("Bot joined **" + guild.getName() + "**.")
+                        .addField(EmbedCreateFields.Field.of("Timestamp",
+                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                                "guildId = " + guild.getId().asString() + "\n" +
+                                "```", false))
+                        .build())
+                .build()).onErrorStop().block();
+    }
+
+    public void sendGuildLeave(Guild guild) {
+        webhook.execute(WebhookExecuteSpec.builder()
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":heavy_plus_sign: | Bot removed")
+                        .description("Bot left **" + guild.getName() + "**.")
+                        .addField(EmbedCreateFields.Field.of("Timestamp",
+                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                                "guildId = " + guild.getId().asString() + "\n" +
+                                "```", false))
+                        .build())
+                .build()).onErrorStop().block();
+    }
+
     public void sendLogChange(Guild guild, GuildMessageChannel channel) {
         webhook.execute(WebhookExecuteSpec.builder()
                 .addEmbed(EmbedCreateSpec.builder()

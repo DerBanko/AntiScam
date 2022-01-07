@@ -17,7 +17,7 @@ import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
-import tv.banko.antiscam.listener.GuildEnterListener;
+import tv.banko.antiscam.listener.GuildListeners;
 import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
 import tv.banko.antiscam.manage.MessageManager;
@@ -37,7 +37,7 @@ public class AntiScam {
     private final MongoDB mongoDB;
     private final ScamAPI scamAPI;
     private final DiscordAPI discordAPI;
-    private final CommandManager command;
+    private final MessageManager message;
 
     private final Monitor monitor;
     private final Stats stats;
@@ -50,11 +50,11 @@ public class AntiScam {
         this.scamAPI = new ScamAPI(this);
         this.discordAPI = new DiscordAPI(token);
         this.mongoDB = new MongoDB(this);
-        this.command = new CommandManager(this);
+        CommandManager command = new CommandManager(this);
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
 
-        //new MessageManager(this);
+        this.message = new MessageManager(this);
 
         if (this.gateway == null) {
             System.out.println("null");
@@ -62,7 +62,7 @@ public class AntiScam {
         }
 
         new MessageListeners(this, this.client, this.gateway);
-        new GuildEnterListener(this, this.client, this.gateway);
+        new GuildListeners(this, this.client, this.gateway);
         new MonitorListeners(this, this.client, this.gateway);
 
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.gateway
@@ -138,6 +138,10 @@ public class AntiScam {
 
     public Stats getStats() {
         return stats;
+    }
+
+    public MessageManager getMessage() {
+        return message;
     }
 
     public DiscordAPI getDiscordAPI() {
