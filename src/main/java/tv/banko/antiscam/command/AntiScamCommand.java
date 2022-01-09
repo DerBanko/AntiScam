@@ -2,6 +2,7 @@ package tv.banko.antiscam.command;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.object.Embed;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.command.ApplicationCommandOption;
@@ -10,12 +11,14 @@ import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
+import discord4j.core.spec.InteractionFollowupCreateSpec;
 import discord4j.core.spec.InteractionReplyEditSpec;
 import discord4j.discordjson.json.*;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
+import tv.banko.antiscam.database.ScamCollection;
 import tv.banko.antiscam.punishment.PunishmentType;
 
 import java.time.Instant;
@@ -38,7 +41,15 @@ public class AntiScamCommand extends DefaultCommand {
 
         ImmutableApplicationCommandRequest.Builder request = ApplicationCommandRequest.builder()
                 .name(commandName)
-                .description("Manage the AntiScam bot");
+                .description("manage the AntiScam bot");
+
+        // /antiscam list
+
+        request.addOption(ApplicationCommandOptionData.builder()
+                .name("list")
+                .description("List all urls the bot is listening for")
+                .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+                .build());
 
         // /antiscam log <Channel>
 
@@ -104,7 +115,8 @@ public class AntiScamCommand extends DefaultCommand {
                 .type(ApplicationCommandOption.Type.STRING.getValue())
                 .required(true);
 
-        for (String type : new String[]{"Message Delete#DELETE", "Kick Member#KICK", "Ban Member#BAN", "Timeout Member#TIMEOUT"}) {
+        for (String type : new String[]{"Message Delete#DELETE", "Kick Member#KICK",
+                "Ban Member#BAN", "Timeout Member#TIMEOUT"}) {
             String[] s = type.split("#");
 
             builder.addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -192,6 +204,10 @@ public class AntiScamCommand extends DefaultCommand {
 
         ApplicationCommandInteractionOption first = list.get(0);
 
+        if (first.getName().equalsIgnoreCase("list")) {
+            return listPhrases(event);
+        }
+
         if (first.getName().equalsIgnoreCase("log")) {
             return setLog(event);
         }
@@ -215,6 +231,118 @@ public class AntiScamCommand extends DefaultCommand {
         return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
                 .addEmbed(getEmbedToRespond("no_argument_given"))
+                .build());
+    }
+
+    private Mono<?> listPhrases(ChatInputInteractionEvent event) {
+
+        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+        if (optionalSnowflake.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                    .build());
+        }
+
+        ScamCollection collection = antiScam.getMongoDB().getScamCollection();
+
+        List<String> github = antiScam.getScamAPI().getGithubDomains();
+        List<String> approved = collection.getApprovedPhrases();
+        List<String> nonApproved = collection.getGuildNonApprovedPhrases(optionalSnowflake.get());
+
+        StringBuilder builder = new StringBuilder();
+
+        for (String s : github) {
+
+            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+                event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .addEmbed(EmbedCreateSpec.builder()
+                                .title(":scroll: | Github phrases")
+                                .description(builder.toString())
+                                .url(antiScam.getScamAPI().getUrl())
+                                .build())
+                        .build());
+                builder = new StringBuilder();
+            }
+
+            builder.append("`").append(s).append("`");
+        }
+
+        if(!builder.isEmpty()) {
+            event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .addEmbed(EmbedCreateSpec.builder()
+                            .title(":scroll: | Github phrases")
+                            .description(builder.toString())
+                            .url(antiScam.getScamAPI().getUrl())
+                            .build())
+                    .build());
+            builder = new StringBuilder();
+        }
+
+        for (String s : approved) {
+
+            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+                event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .addEmbed(EmbedCreateSpec.builder()
+                                .title(":scroll: | Approved phrases")
+                                .description(builder.toString())
+                                .build())
+                        .build());
+                builder = new StringBuilder();
+            }
+
+            builder.append("`").append(s).append("`");
+        }
+
+        if(!builder.isEmpty()) {
+            event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .addEmbed(EmbedCreateSpec.builder()
+                            .title(":scroll: | Approved phrases")
+                            .description(builder.toString())
+                            .build())
+                    .build());
+            builder = new StringBuilder();
+        }
+
+        for (String s : nonApproved) {
+
+            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+                event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .addEmbed(EmbedCreateSpec.builder()
+                                .title(":scroll: | Non approved phrases")
+                                .description(builder.toString())
+                                .build())
+                        .build());
+                builder = new StringBuilder();
+            }
+
+            builder.append("`").append(s).append("`");
+        }
+
+        if(!builder.isEmpty()) {
+            event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .addEmbed(EmbedCreateSpec.builder()
+                            .title(":scroll: | Non approved phrases")
+                            .description(builder.toString())
+                            .build())
+                    .build());
+        }
+
+        return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(EmbedCreateSpec.builder()
+                        .title(":scroll: | List of phrases")
+                        .description("`Github Phrases`: **" + github.size() + " Phrase" +
+                                (github.size() != 1 ? "s" : "") + "**[Source](" + antiScam.getScamAPI().getUrl() + ")" +
+
+                                "\n`Approved Phrases`: **" + approved.size() + " Phrase" +
+                                (approved.size() != 1 ? "s" : "") + "** (added via `/antiscam add <URL>` and approved)" +
+
+                                "\n`Non approved Phrases`: **" + nonApproved.size() + " Phrase"
+                                + (nonApproved.size() != 1 ? "s" : "") + "** (added via `/antiscam add <URL>` on your guild)")
+                        .timestamp(Instant.now())
+                        .build())
                 .build());
     }
 
@@ -280,7 +408,6 @@ public class AntiScamCommand extends DefaultCommand {
         GuildMessageChannel messageChannel = (GuildMessageChannel) channel;
 
         this.antiScam.getMongoDB().getLogCollection().setChannel(optionalSnowflake.get(), messageChannel.getId());
-        this.antiScam.getMonitor().sendLogChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), messageChannel);
 
         return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
@@ -338,7 +465,6 @@ public class AntiScamCommand extends DefaultCommand {
         switch (value) {
             case "KICK" -> {
                 PunishmentType type = PunishmentType.kick();
-                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
                 this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
@@ -351,7 +477,6 @@ public class AntiScamCommand extends DefaultCommand {
             }
             case "BAN" -> {
                 PunishmentType type = PunishmentType.ban();
-                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
                 this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
@@ -377,7 +502,6 @@ public class AntiScamCommand extends DefaultCommand {
                 }
 
                 PunishmentType type = PunishmentType.timeout(duration);
-                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
                 this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
@@ -390,7 +514,6 @@ public class AntiScamCommand extends DefaultCommand {
             }
             default -> {
                 PunishmentType type = PunishmentType.delete();
-                this.antiScam.getMonitor().sendPunishmentChange(Objects.requireNonNull(event.getInteraction().getGuild().block()), type);
                 this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
@@ -447,7 +570,7 @@ public class AntiScamCommand extends DefaultCommand {
                     .build());
         }
 
-        if(!pattern.matcher(value).matches()) {
+        if (!pattern.matcher(value).matches()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
                     .addEmbed(getEmbedToRespond("no_url"))
@@ -526,14 +649,14 @@ public class AntiScamCommand extends DefaultCommand {
 
         Snowflake guildId = optionalSnowflake.get();
 
-        if(!pattern.matcher(value).matches()) {
+        if (!pattern.matcher(value).matches()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
                     .addEmbed(getEmbedToRespond("no_url"))
                     .build());
         }
 
-        if(!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
+        if (!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
             if (!antiScam.isScam(value, optionalSnowflake.get())) {
                 return event.editReply(InteractionReplyEditSpec.builder()
                         .contentOrNull(null)
@@ -563,7 +686,7 @@ public class AntiScamCommand extends DefaultCommand {
 
     private Mono<?> approveURL(ChatInputInteractionEvent event) {
 
-        if(!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
+        if (!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
             return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
                     .addEmbed(getEmbedToRespond("admin_no_permission"))
@@ -611,7 +734,7 @@ public class AntiScamCommand extends DefaultCommand {
                     .build());
         }
 
-        if(!pattern.matcher(value).matches()) {
+        if (!pattern.matcher(value).matches()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
                     .addEmbed(getEmbedToRespond("no_url"))

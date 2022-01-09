@@ -107,6 +107,23 @@ public class ScamCollection {
         return list;
     }
 
+    public List<String> getGuildNonApprovedPhrases(Snowflake guildId) {
+        MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
+
+        List<String> list = new ArrayList<>();
+
+        for (Document document : collection.find(Filters.and(Filters.eq("approved", false),
+                Filters.eq("guildId", guildId.asString())))) {
+            if (document == null) {
+                continue;
+            }
+
+            list.add(document.getString("phrase").toLowerCase());
+        }
+
+        return list;
+    }
+
     /**
      * This phrase could be unapproved!
      */

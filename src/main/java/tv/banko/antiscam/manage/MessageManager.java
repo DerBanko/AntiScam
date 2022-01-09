@@ -12,12 +12,23 @@ public class MessageManager {
 
     public MessageManager(AntiScam antiScam) {
         this.antiScam = antiScam;
+
+        // if the bot gets verified lol
+        // sendUpdateLogInLogs();
     }
 
     public void sendUpdateLogInLogs() {
         antiScam.getMongoDB().getLogCollection().sendMessages(EmbedCreateSpec.builder()
-                .title(":newspaper: | Changelog 1.2")
+                .title(":newspaper: | Verified")
                 .description("""
+                        Hey!
+                        
+                        Thank you for using the **AntiScam** Bot.
+                        We reached **100 Servers** and got **verified today**, so thank you.
+                        
+                        Because some people requested it: use `/antiscam list` to list all phrases.
+                        
+                        Please consider joining the bot creators discord server **<https://discord.gg/banko>**.
                         
                         Have a great day,
                         **Banko**""")

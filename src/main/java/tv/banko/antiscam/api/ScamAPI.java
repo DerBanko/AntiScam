@@ -10,11 +10,14 @@ import okhttp3.Response;
 import tv.banko.antiscam.AntiScam;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
 public class ScamAPI {
 
+    private final String url;
     private final AntiScam antiScam;
     private final OkHttpClient client;
 
@@ -22,6 +25,7 @@ public class ScamAPI {
     private long updateIn;
 
     public ScamAPI(AntiScam antiScam) {
+        this.url = "https://raw.githubusercontent.com/nikolaischunk/discord-phishing-links/main/domain-list.json";
         this.antiScam = antiScam;
         this.client = new OkHttpClient();
 
@@ -46,9 +50,8 @@ public class ScamAPI {
     }
 
     private void update() {
-        String URL = "https://raw.githubusercontent.com/nikolaischunk/discord-phishing-links/main/domain-list.json";
         Request request = new Request.Builder()
-                .url(URL)
+                .url(url)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
@@ -65,5 +68,17 @@ public class ScamAPI {
         }
     }
 
+    public List<String> getGithubDomains() {
+        List<String> list = new ArrayList<>();
 
+        for (JsonElement domain : domains) {
+            list.add(domain.getAsString());
+        }
+
+        return list;
+    }
+
+    public String getUrl() {
+        return url;
+    }
 }

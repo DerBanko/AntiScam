@@ -3,13 +3,10 @@ package tv.banko.antiscam.manage;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Webhook;
-import discord4j.core.object.entity.channel.GuildMessageChannel;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.WebhookExecuteSpec;
 import tv.banko.antiscam.AntiScam;
-import tv.banko.antiscam.punishment.PunishmentType;
 
 import java.time.Instant;
 
@@ -75,31 +72,13 @@ public class Monitor {
                 .build()).onErrorStop().block();
     }
 
-    public void sendLogChange(Guild guild, GuildMessageChannel channel) {
+    public void sendError(Throwable throwable) {
         webhook.execute(WebhookExecuteSpec.builder()
+                .content("@everyone")
                 .addEmbed(EmbedCreateSpec.builder()
-                        .title(":newspaper: | Log channel changed")
-                        .description("Log channel has been changed to **" + channel.getName() + "**.")
-                        .addField(EmbedCreateFields.Field.of("Guild", "**" + guild.getName() + "**", false))
-                        .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                                "guildId = " + guild.getId().asString() + "\n" +
-                                "channelId = " + channel.getId().asString() + "\n" +
-                                "```", false))
-                        .build())
-                .build()).onErrorStop().block();
-    }
-
-    public void sendPunishmentChange(Guild guild, PunishmentType type) {
-        webhook.execute(WebhookExecuteSpec.builder()
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":newspaper: | Punishment type changed")
-                        .description("Punishment type has been changed to **" + type.action() + "** (" + type.duration() + ").")
-                        .addField(EmbedCreateFields.Field.of("Guild", "**" + guild.getName() + "**", false))
-                        .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                                "guildId = " + guild.getId().asString() + "\n" +
-                                "```", false))
+                        .title(":warning: | Error")
+                        .description("`" + throwable.getClass().getName() + "` occured!" +
+                                "\n`" + throwable + "`")
                         .build())
                 .build()).onErrorStop().block();
     }

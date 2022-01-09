@@ -18,8 +18,6 @@ public class MessageListeners extends DefaultListener {
 
         gateway.getEventDispatcher().on(MessageCreateEvent.class, event -> {
             try {
-                antiScam.getStats().addMessage();
-
                 if (event.getMessage().getContent().equalsIgnoreCase("")) {
                     return Mono.empty();
                 }
@@ -34,7 +32,6 @@ public class MessageListeners extends DefaultListener {
                     return Mono.empty();
                 }
 
-                antiScam.getStats().addScam();
                 antiScam.punish(event.getMessage());
                 return Mono.empty();
             } catch (Exception e) {
@@ -69,7 +66,6 @@ public class MessageListeners extends DefaultListener {
                     return Mono.empty();
                 }
 
-                antiScam.getStats().addScam();
                 antiScam.punish(message);
                 return Mono.empty();
             } catch (Exception e) {

@@ -50,11 +50,12 @@ public class AntiScam {
         this.scamAPI = new ScamAPI(this);
         this.discordAPI = new DiscordAPI(token);
         this.mongoDB = new MongoDB(this);
-        CommandManager command = new CommandManager(this);
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
 
         this.message = new MessageManager(this);
+
+        new CommandManager(this);
 
         if (this.gateway == null) {
             System.out.println("null");
@@ -66,8 +67,13 @@ public class AntiScam {
         new MonitorListeners(this, this.client, this.gateway);
 
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.gateway
-                .updatePresence(ClientPresence.online(ClientActivity.competing("Scam Links on " + this.client
-                        .getGuilds().count().block() + " Servers"))).block(), 0, 10, TimeUnit.SECONDS);
+                .updatePresence(ClientPresence.online(ClientActivity.listening("Scam URLs | /antiscam | " + this.client
+                        .getGuilds().count().block() + " guilds"))).block(), 0, 10, TimeUnit.SECONDS);
+
+        Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
+            monitor.sendError(e);
+            e.printStackTrace();
+        });
 
         gateway.onDisconnect().block();
     }
@@ -146,5 +152,9 @@ public class AntiScam {
 
     public DiscordAPI getDiscordAPI() {
         return discordAPI;
+    }
+
+    public ScamAPI getScamAPI() {
+        return scamAPI;
     }
 }
