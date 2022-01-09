@@ -47,7 +47,7 @@ public class AntiScamCommand extends DefaultCommand {
 
         request.addOption(ApplicationCommandOptionData.builder()
                 .name("list")
-                .description("List all urls the bot is listening for")
+                .description("List all urls")
                 .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
                 .build());
 

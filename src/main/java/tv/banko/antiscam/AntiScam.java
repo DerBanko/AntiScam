@@ -50,12 +50,11 @@ public class AntiScam {
         this.scamAPI = new ScamAPI(this);
         this.discordAPI = new DiscordAPI(token);
         this.mongoDB = new MongoDB(this);
+        new CommandManager(this);
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
 
         this.message = new MessageManager(this);
-
-        new CommandManager(this);
 
         if (this.gateway == null) {
             System.out.println("null");
