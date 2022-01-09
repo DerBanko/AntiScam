@@ -23,7 +23,6 @@ import tv.banko.antiscam.punishment.PunishmentType;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -255,78 +254,96 @@ public class AntiScamCommand extends DefaultCommand {
 
         for (String s : github) {
 
-            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+            if ((builder.length() + (", `" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
                 event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
                                 .title(":scroll: | Github phrases")
                                 .description(builder.toString())
                                 .url(antiScam.getScamAPI().getUrl())
                                 .build())
-                        .build());
+                        .build()).block();
                 builder = new StringBuilder();
+            }
+
+            if (!builder.isEmpty()) {
+                builder.append(", ");
             }
 
             builder.append("`").append(s).append("`");
         }
 
-        if(!builder.isEmpty()) {
+        if (!builder.isEmpty()) {
             event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
                             .title(":scroll: | Github phrases")
                             .description(builder.toString())
                             .url(antiScam.getScamAPI().getUrl())
                             .build())
-                    .build());
+                    .build()).block();
             builder = new StringBuilder();
         }
 
         for (String s : approved) {
 
-            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+            if ((builder.length() + (", `" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
                 event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
                                 .title(":scroll: | Approved phrases")
                                 .description(builder.toString())
                                 .build())
-                        .build());
+                        .build()).block();
                 builder = new StringBuilder();
+            }
+
+            if (!builder.isEmpty()) {
+                builder.append(", ");
             }
 
             builder.append("`").append(s).append("`");
         }
 
-        if(!builder.isEmpty()) {
+        if (!builder.isEmpty()) {
             event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
                             .title(":scroll: | Approved phrases")
                             .description(builder.toString())
                             .build())
-                    .build());
+                    .build()).block();
             builder = new StringBuilder();
         }
 
         for (String s : nonApproved) {
 
-            if ((builder.length() + ("`" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
+            if ((builder.length() + (", `" + s + "`").length()) >= Embed.MAX_DESCRIPTION_LENGTH) {
                 event.createFollowup(InteractionFollowupCreateSpec.builder()
+                        .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
                                 .title(":scroll: | Non approved phrases")
                                 .description(builder.toString())
                                 .build())
-                        .build());
+                        .build()).block();
                 builder = new StringBuilder();
+            }
+
+            if (!builder.isEmpty()) {
+                builder.append(", ");
             }
 
             builder.append("`").append(s).append("`");
         }
 
-        if(!builder.isEmpty()) {
+        if (!builder.isEmpty()) {
             event.createFollowup(InteractionFollowupCreateSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
                             .title(":scroll: | Non approved phrases")
                             .description(builder.toString())
                             .build())
-                    .build());
+                    .build()).block();
         }
 
         return event.editReply(InteractionReplyEditSpec.builder()
@@ -334,7 +351,7 @@ public class AntiScamCommand extends DefaultCommand {
                 .addEmbed(EmbedCreateSpec.builder()
                         .title(":scroll: | List of phrases")
                         .description("`Github Phrases`: **" + github.size() + " Phrase" +
-                                (github.size() != 1 ? "s" : "") + "**[Source](" + antiScam.getScamAPI().getUrl() + ")" +
+                                (github.size() != 1 ? "s" : "") + " ** ([Source](" + antiScam.getScamAPI().getUrl() + "))" +
 
                                 "\n`Approved Phrases`: **" + approved.size() + " Phrase" +
                                 (approved.size() != 1 ? "s" : "") + "** (added via `/antiscam add <URL>` and approved)" +
