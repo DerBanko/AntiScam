@@ -48,8 +48,8 @@ public record PunishmentType(String action, int duration) {
                             .build()).onErrorStop().block();
                 }
                 case "TIMEOUT": {
-                    System.out.println(antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
-                            (duration * 1000L)));
+                    antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
+                            (duration * 1000L));
                 }
             }
         } catch (Exception e) {

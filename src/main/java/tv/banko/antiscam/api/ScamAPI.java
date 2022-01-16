@@ -8,11 +8,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import tv.banko.antiscam.AntiScam;
+import tv.banko.antiscam.utils.URLHelper;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 public class ScamAPI {
@@ -39,11 +39,14 @@ public class ScamAPI {
         }
 
         for (JsonElement jsonElement : domains) {
-            String link = jsonElement.getAsString();
+            String phrase = jsonElement.getAsString();
 
-            if (message.toLowerCase(Locale.ROOT).contains(link.toLowerCase(Locale.ROOT))) {
-                return true;
+            if (URLHelper.doesNotContain(message, phrase)) {
+                continue;
             }
+
+            System.out.println("phrase '" + message + "' contained " + phrase + " (github scam phrases)");
+            return true;
         }
 
         return antiScam.getMongoDB().getScamCollection().containsScam(message, guildId);

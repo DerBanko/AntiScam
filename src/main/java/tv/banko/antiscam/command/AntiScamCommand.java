@@ -666,13 +666,6 @@ public class AntiScamCommand extends DefaultCommand {
 
         Snowflake guildId = optionalSnowflake.get();
 
-        if (!pattern.matcher(value).matches()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                    .contentOrNull(null)
-                    .addEmbed(getEmbedToRespond("no_url"))
-                    .build());
-        }
-
         if (!event.getInteraction().getUser().getId().asString().equals(BOT_OWNER_ID)) {
             if (!antiScam.isScam(value, optionalSnowflake.get())) {
                 return event.editReply(InteractionReplyEditSpec.builder()

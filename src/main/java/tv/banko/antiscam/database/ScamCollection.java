@@ -5,6 +5,7 @@ import com.mongodb.client.model.Filters;
 import discord4j.common.util.Snowflake;
 import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
+import tv.banko.antiscam.utils.URLHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,14 +30,21 @@ public class ScamCollection {
     }
 
     public void addPhrase(String phrase, Snowflake userId, Snowflake guildId) {
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
 
-        if (isRegisteredPhrase(phrase)) {
+        if (isRegisteredPhrase(s)) {
             return;
         }
 
         Document document = new Document()
-                .append("phrase", phrase.toLowerCase())
+                .append("phrase", s.toLowerCase())
                 .append("guildId", guildId.asString())
                 .append("userId", userId.asString())
                 .append("approved", userId.asString().equals(BOT_OWNER_ID));
@@ -46,46 +54,59 @@ public class ScamCollection {
     }
 
     public void approvePhrase(String phrase) {
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
 
-        if (!isRegisteredPhrase(phrase) || containsScam(phrase)) {
+        if (!isRegisteredPhrase(s) || containsScam(s)) {
             return;
         }
 
-        list.add(phrase.toLowerCase());
+        list.add(s);
 
-        collection.updateOne(Filters.eq("phrase", phrase.toLowerCase()),
+        collection.updateOne(Filters.eq("phrase", s),
                 new Document("$set", new Document().append("approved", true)));
     }
 
-    public boolean containsScam(String phrase, Snowflake guildId) {
-        for (String s : list) {
-            if (phrase.contains(s)) {
-                return true;
-            }
+    public boolean containsScam(String message, Snowflake guildId) {
+        if (containsScam(message)) {
+            return true;
         }
 
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
 
         for (Document document : collection.find(Filters.eq("guildId", guildId.asString()))) {
 
-            if(document == null) {
+            if (document == null) {
                 continue;
             }
 
-            if(phrase.toLowerCase().contains(document.getString("phrase"))) {
-                return true;
+            String phrase = document.getString("phrase").toLowerCase();
+
+            if (URLHelper.doesNotContain(message, phrase)) {
+                continue;
             }
+
+            System.out.println("phrase '" + message + "' contained " + phrase + " (guild scam phrases)");
+            return true;
         }
 
         return false;
     }
 
-    private boolean containsScam(String phrase) {
-        for (String s : list) {
-            if (phrase.contains(s)) {
-                return true;
+    private boolean containsScam(String message) {
+        for (String phrase : list) {
+            if (URLHelper.doesNotContain(message, phrase)) {
+                continue;
             }
+
+            System.out.println("phrase '" + message + "' contained " + phrase + " (public scam phrases)");
+            return true;
         }
 
         return false;
@@ -129,35 +150,65 @@ public class ScamCollection {
      */
     public boolean isRegisteredPhrase(String phrase) {
 
-        if (list.contains(phrase)) {
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        if (list.contains(s)) {
             return true;
         }
 
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
-        return collection.find(Filters.eq("phrase", phrase.toLowerCase())).first() != null;
+        return collection.find(Filters.eq("phrase", s)).first() != null;
     }
 
     /**
      * This phrase could be unapproved!
      */
     public boolean isApprovedPhrase(String phrase) {
-        return list.contains(phrase);
+
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        return list.contains(s);
     }
 
     /**
      * This phrase could be unapproved!
      */
     public boolean isRegisteredByGuild(String phrase, Snowflake guildId) {
+
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
-        return collection.find(Filters.and(Filters.eq("phrase", phrase.toLowerCase()),
+        return collection.find(Filters.and(Filters.eq("phrase", s),
                 Filters.eq("guildId", guildId.asString()))).first() != null;
     }
 
     public void removePhrase(String phrase) {
+        String s = phrase.toLowerCase().replace("http://", "")
+                .replace("https://", "");
+
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
 
-        list.remove(phrase.toLowerCase());
-        collection.deleteOne(Filters.eq("phrase", phrase.toLowerCase()));
+        list.remove(s.toLowerCase());
+        collection.deleteOne(Filters.eq("phrase", s.toLowerCase()));
     }
 
     private String getCollectionName() {
