@@ -17,7 +17,7 @@ A simple Discord bot that helps you to manage sent [Scam](https://de.wikipedia.o
 
 ## Found a not detected Link?
 
-You can add the link to your serverblacklist with `/antiscam add <URL>`. If the Bot owner approves the link, it will get added to the global banlist.
+You can add the link to your server blacklist with `/antiscam add <URL>`. If the Bot owner approves the link, it will get added to the global banlist.
 
 - Contribute to the [discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links) repository to make the suspicious domain visible for everyone.
 
