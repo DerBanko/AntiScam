@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "tv.banko"
-version = "1.2.1"
+version = "1.3"
 
 repositories {
     mavenCentral()

@@ -6,10 +6,11 @@ Server.
 ## Usage
 
 1. First, you will have to [invite](https://banko.tv/r/invite-antiscam) the Discord Bot to your Discord Server.
-1. If you invite the Bot, use the Command `/antiscam log <channel>` to configure the Log Channel where a message should
+2. If you invite the Bot, use the Command `/antiscam log <channel>` to configure the Log Channel where a message should
    get sent every time someone sends a scam message to your Discord Server.
-1. Then configure the punishment that should be executed when a scam message is sent
+3. Then configure the punishment that should be executed when a scam message is sent
    with `/antiscam punishment <punishment>`
+4. (optional) Enable the violation system by using `/antiscam violation enable`. This new system checks messages for specific phrases like `gift`, `nitro`, ...
 
 ## Building
 
@@ -34,6 +35,14 @@ You can create a local unzipped distribution with:
 - Ban Member
 - Timeout Member \<duration in seconds\>
 
+### Categories
+(The categories can be optionally added in `/antiscam punishment <Punishment> [Category]`)
+
+- Scam url found
+- Medium violation (violation score 16-35)
+- High violation (violation score 36-55)
+- Extreme violation (violation score 56+)
+
 ## Found a not detected Link?
 
 You can add the link to your server blacklist with `/antiscam add <URL>`. If the Bot owner approves the link, it will
@@ -45,9 +54,12 @@ get added to the global banlist.
 ## Commands available
 
 - `/antiscam log <channel>`
-- `/antiscam punishment <punishment>`
+- `/antiscam punishment <punishment> [category]`
 - `/antiscam add <URL>`
 - `/antiscam remove <URL>`
+- `/antiscam list`
+- `/antiscam violation enable`
+- `/antiscam violation disable`
 
 # Invite
 
