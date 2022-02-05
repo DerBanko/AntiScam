@@ -71,40 +71,33 @@ public class LogCollection {
 
         GuildMessageChannel channel = (GuildMessageChannel) optional.get();
 
-        channel.createMessage(spec).onErrorStop().block();
+        channel.createMessage(spec).onErrorStop().subscribe();
     }
 
     public void sendMessages(EmbedCreateSpec spec, boolean pingHere) {
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
 
-        collection.find().forEach(document -> {
+        new Thread(() -> collection.find().forEach(document -> {
             try {
                 if (document == null) {
                     return;
                 }
 
                 Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(
-                        document.getString("channelId"))).blockOptional();
+                    document.getString("channelId"))).blockOptional();
 
                 if (optional.isEmpty()) {
                     return;
                 }
 
-                GuildMessageChannel channel = (GuildMessageChannel) optional.get();
+                ((GuildMessageChannel) optional.get()).createMessage(spec)
+                    .withContent(pingHere ? "@here" : "").onErrorStop().subscribe();
 
-                try {
-                    List<Embed> list = Objects.requireNonNull(channel.getLastMessage().block()).getEmbeds();
-
-                    if (list.get(0).getTitle().isPresent() && list.get(0).getTitle().get().equals(spec.title().get())){
-                        return;
-                    }
-
-                } catch (Exception ignored) { }
-
-                channel.createMessage(spec).withContent(pingHere ? "@here" : "").onErrorStop().block();
-            } catch (Exception ignored) {
+                Thread.sleep(100);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        });
+        })).start();
     }
 
     private String getCollectionName() {

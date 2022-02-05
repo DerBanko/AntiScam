@@ -2,6 +2,8 @@ package tv.banko.antiscam.manage;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.Webhook;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -61,7 +63,7 @@ public class Monitor {
     public void sendGuildLeave(Guild guild) {
         webhook.execute(WebhookExecuteSpec.builder()
                 .addEmbed(EmbedCreateSpec.builder()
-                        .title(":heavy_plus_sign: | Bot removed")
+                        .title(":heavy_minus_sign: | Bot removed")
                         .description("Bot left **" + guild.getName() + "**.")
                         .addField(EmbedCreateFields.Field.of("Timestamp",
                                 "<t:" + Instant.now().getEpochSecond() + ":f>", false))

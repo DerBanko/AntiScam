@@ -7,6 +7,10 @@ import tv.banko.antiscam.AntiScam;
 
 public record PunishmentType(String action, int duration) {
 
+    public static PunishmentType none() {
+        return new PunishmentType("NONE", 0);
+    }
+
     public static PunishmentType kick() {
         return new PunishmentType("KICK", 0);
     }
@@ -28,6 +32,11 @@ public record PunishmentType(String action, int duration) {
     }
 
     public void punish(AntiScam antiScam, Message message) {
+
+        if (action.equalsIgnoreCase("NONE")) {
+            return;
+        }
+
         Member member = message.getAuthorAsMember().onErrorStop().blockOptional().orElse(null);
 
         message.delete().onErrorStop().block();
@@ -43,13 +52,13 @@ public record PunishmentType(String action, int duration) {
                 }
                 case "BAN": {
                     member.ban(BanQuerySpec.builder()
-                            .reason("message contained scam content")
-                            .deleteMessageDays(0)
-                            .build()).onErrorStop().block();
+                        .reason("message contained scam content")
+                        .deleteMessageDays(0)
+                        .build()).onErrorStop().block();
                 }
                 case "TIMEOUT": {
                     antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
-                            (duration * 1000L));
+                        (duration * 1000L));
                 }
             }
         } catch (Exception e) {
@@ -60,5 +69,13 @@ public record PunishmentType(String action, int duration) {
     @Override
     public String toString() {
         return action + "#" + duration;
+    }
+
+    public String getName() {
+        if (duration == 0) {
+            return action.toLowerCase();
+        }
+
+        return action.toLowerCase() + " " + duration + "s";
     }
 }

@@ -5,7 +5,7 @@ import com.mongodb.client.model.Filters;
 import discord4j.common.util.Snowflake;
 import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
-import tv.banko.antiscam.utils.URLHelper;
+import tv.banko.antiscam.util.URLHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class ScamCollection {
                 .append("userId", userId.asString())
                 .append("approved", userId.asString().equals(BOT_OWNER_ID));
 
-        antiScam.getStats().sendNewPhrase(phrase, userId, guildId);
+        antiScam.getAdmin().getButton().sendApprovePhrase(phrase);
         collection.insertOne(document);
     }
 
@@ -92,7 +92,6 @@ public class ScamCollection {
                 continue;
             }
 
-            System.out.println("phrase '" + message + "' contained " + phrase + " (guild scam phrases)");
             return true;
         }
 
@@ -105,7 +104,6 @@ public class ScamCollection {
                 continue;
             }
 
-            System.out.println("phrase '" + message + "' contained " + phrase + " (public scam phrases)");
             return true;
         }
 

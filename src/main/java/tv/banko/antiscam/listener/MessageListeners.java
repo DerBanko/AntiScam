@@ -29,6 +29,7 @@ public class MessageListeners extends DefaultListener {
                 }
 
                 if (!antiScam.isScam(event.getMessage().getContent(), guildId.get())) {
+                    antiScam.getViolation().createDetector(event.getMessage()).check();
                     return Mono.empty();
                 }
 
@@ -63,6 +64,7 @@ public class MessageListeners extends DefaultListener {
                 }
 
                 if (!antiScam.isScam(message.getContent(), guildId.get())) {
+                    antiScam.getViolation().createDetector(message).check();
                     return Mono.empty();
                 }
 

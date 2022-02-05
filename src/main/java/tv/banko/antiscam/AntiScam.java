@@ -13,10 +13,13 @@ import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
+import tv.banko.antiscam.admin.AdminManager;
+import tv.banko.antiscam.admin.command.AdminCommandManager;
 import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
+import tv.banko.antiscam.violation.ViolationManager;
 import tv.banko.antiscam.listener.GuildListeners;
 import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
@@ -38,6 +41,9 @@ public class AntiScam {
     private final ScamAPI scamAPI;
     private final DiscordAPI discordAPI;
     private final MessageManager message;
+    private final ViolationManager violation;
+
+    private final AdminManager admin;
 
     private final Monitor monitor;
     private final Stats stats;
@@ -54,7 +60,10 @@ public class AntiScam {
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
 
+        this.admin = new AdminManager(this);
+
         this.message = new MessageManager(this);
+        this.violation = new ViolationManager(this);
 
         if (this.gateway == null) {
             System.out.println("null");
@@ -149,11 +158,19 @@ public class AntiScam {
         return message;
     }
 
+    public ViolationManager getViolation() {
+        return violation;
+    }
+
     public DiscordAPI getDiscordAPI() {
         return discordAPI;
     }
 
     public ScamAPI getScamAPI() {
         return scamAPI;
+    }
+
+    public AdminManager getAdmin() {
+        return admin;
     }
 }

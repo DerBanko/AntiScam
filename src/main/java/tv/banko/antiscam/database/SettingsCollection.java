@@ -7,6 +7,7 @@ import discord4j.core.object.entity.Message;
 import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.punishment.PunishmentType;
+import tv.banko.antiscam.violation.ViolationType;
 
 import java.util.Optional;
 

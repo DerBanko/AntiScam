@@ -8,7 +8,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import tv.banko.antiscam.AntiScam;
-import tv.banko.antiscam.utils.URLHelper;
+import tv.banko.antiscam.util.URLHelper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,7 +45,6 @@ public class ScamAPI {
                 continue;
             }
 
-            System.out.println("phrase '" + message + "' contained " + phrase + " (github scam phrases)");
             return true;
         }
 
@@ -54,8 +53,8 @@ public class ScamAPI {
 
     private void update() {
         Request request = new Request.Builder()
-                .url(url)
-                .build();
+            .url(url)
+            .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (response.body() == null) {
@@ -63,7 +62,7 @@ public class ScamAPI {
             }
 
             domains = JsonParser.parseString(Objects.requireNonNull(response.body()).string())
-                    .getAsJsonObject().getAsJsonArray("domains");
+                .getAsJsonObject().getAsJsonArray("domains");
 
             this.updateIn = System.currentTimeMillis() + (1000 * 60 * 10);
         } catch (IOException e) {

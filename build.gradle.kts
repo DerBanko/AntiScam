@@ -22,6 +22,21 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
+tasks.withType<Jar> {
+    val classpath = configurations.runtimeClasspath
+
+    inputs.files(classpath).withNormalizer(ClasspathNormalizer::class.java)
+
+    manifest {
+        attributes["Main-Class"] = "tv.banko.antiscam.Main"
+
+        attributes(
+            "Class-Path" to classpath.map { cp -> cp.joinToString(" ") { "./lib/" + it.name } }
+        )
+    }
+    archiveBaseName.set("AntiScam")
+    archiveVersion.set("")
+}
 
 application {
     mainClass.set("tv.banko.antiscam.Main")
