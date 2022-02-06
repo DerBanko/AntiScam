@@ -43,6 +43,10 @@ public class AdminCommandManager {
                         continue;
                     }
 
+                    if (mono.equals(Mono.justOrEmpty(true))) {
+                        return Mono.empty();
+                    }
+
                     return mono;
                 } catch (Exception e) {
                     e.printStackTrace();

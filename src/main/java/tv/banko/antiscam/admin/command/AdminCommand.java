@@ -5,6 +5,7 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.command.ApplicationCommandOption;
+import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
@@ -18,6 +19,8 @@ import discord4j.rest.util.PermissionSet;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 
+import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -27,15 +30,25 @@ public class AdminCommand extends DefaultGuildCommand {
 
     private final AntiScam antiScam;
     private final Pattern pattern;
+    private final SimpleDateFormat format;
 
     public AdminCommand(AntiScam antiScam, long guildId) {
         super(antiScam.getClient(), guildId, "admin");
         this.antiScam = antiScam;
         this.pattern = Pattern.compile("https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)");
+        this.format = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss:SSS");
 
         ImmutableApplicationCommandRequest.Builder request = ApplicationCommandRequest.builder()
             .name(commandName)
             .description("manage the AntiScam bot");
+
+        // /admin info
+
+        request.addOption(ApplicationCommandOptionData.builder()
+            .name("info")
+            .description("Information of anything")
+            .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+            .build());
 
         // /admin add <url>
 
@@ -163,6 +176,10 @@ public class AdminCommand extends DefaultGuildCommand {
 
         ApplicationCommandInteractionOption first = list.get(0);
 
+        if (first.getName().equalsIgnoreCase("info")) {
+            return info(event);
+        }
+
         if (first.getName().equalsIgnoreCase("add")) {
             return addURL(event);
         }
@@ -183,6 +200,50 @@ public class AdminCommand extends DefaultGuildCommand {
             .contentOrNull(null)
             .addEmbed(getEmbedToRespond("no_argument_given"))
             .build());
+    }
+
+    private Mono<?> info(ChatInputInteractionEvent event) {
+        antiScam.getGateway().getGuilds().collectList().subscribe(list -> {
+
+            int count = list.size();
+            int memberCount = 0;
+
+            int partnered = 0;
+            int verified = 0;
+
+
+
+            for (Guild guild : list) {
+                memberCount += guild.getMemberCount();
+
+                if(guild.getFeatures().contains("PARTNERED")) {
+                    partnered++;
+                }
+
+                if(guild.getFeatures().contains("VERIFIED")) {
+                    verified++;
+                }
+            }
+
+            event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(EmbedCreateSpec.builder()
+                    .title(":information_source: | Information")
+                    .description(":clock3: | Up since `" + (ManagementFactory.getRuntimeMXBean().getUptime() / 1000) + "s`" +
+                        "\n" +
+                        "\n" + ":computer: | **Guilds**" +
+                        "\n" + "" +
+                        "\n" + "Guild Count: **" + count + "** Guilds " +
+                        "\n" + "Member Count: **" + memberCount + "** Members " +
+                        "\n" + "Verified Count: **" + verified + "** Guilds " +
+                        "\n" + "Partnered Count: **" + partnered + "** Guilds " +
+                        "\n" + "")
+                    .timestamp(Instant.now())
+                    .build())
+                .build()).subscribe();
+        });
+
+        return Mono.justOrEmpty(true);
     }
 
     private Mono<?> addURL(ChatInputInteractionEvent event) {

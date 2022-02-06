@@ -284,6 +284,7 @@ public class AntiScamCommand extends DefaultCommand {
 
                     **Beta**: Currently there is a **beta** version on our new **violation system**.
                     The algorithm checks if the message **contains a url**, afterwards it checks if the message contains **specific phrases** like `nitro`, ...
+                    **Enable** the beta version using `/antiscam violation enable`.
                     To change the punishments users will receive use `/antiscam punishment <Punishment> [Category]`.
 
                     If you have any ideas to improve **AntiScam**, consider joining my [Discord Server](https://discord.gg/YaWfmGmvSN).
