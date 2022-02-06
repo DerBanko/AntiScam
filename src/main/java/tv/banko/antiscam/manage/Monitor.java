@@ -2,8 +2,6 @@ package tv.banko.antiscam.manage;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.Webhook;
 import discord4j.core.spec.EmbedCreateFields;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -21,68 +19,74 @@ public class Monitor {
         this.antiScam = antiScam;
 
         webhook = this.antiScam.getGateway().getWebhookByIdWithToken(Snowflake.of(System.getenv("MONITOR_WEBHOOK_ID")),
-                System.getenv("MONITOR_WEBHOOK_TOKEN")).blockOptional().orElse(null);
+            System.getenv("MONITOR_WEBHOOK_TOKEN")).blockOptional().orElse(null);
     }
 
     public void sendOnline() {
         webhook.execute(WebhookExecuteSpec.builder()
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":arrow_double_up: | Bot online")
-                        .description("Bot is now **online**.")
-                        .addField(EmbedCreateFields.Field.of("Timestamp",
-                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .build())
-                .build()).onErrorStop().block();
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":arrow_double_up: | Bot online")
+                .description("Bot is now **online**.")
+                .addField(EmbedCreateFields.Field.of("Timestamp",
+                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                .build())
+            .build()).onErrorStop().subscribe();
     }
 
     public void sendOffline() {
         webhook.execute(WebhookExecuteSpec.builder()
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":arrow_double_down: | Bot offline")
-                        .description("Bot is now **offline**.")
-                        .addField(EmbedCreateFields.Field.of("Timestamp",
-                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .build())
-                .build()).onErrorStop().block();
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":arrow_double_down: | Bot offline")
+                .description("Bot is now **offline**.")
+                .addField(EmbedCreateFields.Field.of("Timestamp",
+                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                .build())
+            .build()).onErrorStop().subscribe();
     }
 
     public void sendGuildJoin(Guild guild) {
         webhook.execute(WebhookExecuteSpec.builder()
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":heavy_plus_sign: | Bot added")
-                        .description("Bot joined **" + guild.getName() + "**.")
-                        .addField(EmbedCreateFields.Field.of("Timestamp",
-                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                                "guildId = " + guild.getId().asString() + "\n" +
-                                "```", false))
-                        .build())
-                .build()).onErrorStop().block();
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":heavy_plus_sign: | Bot added")
+                .description("Bot joined **" + guild.getName() + "**.")
+                .addField(EmbedCreateFields.Field.of("Member Count",
+                    "" + guild.getMemberCount(), true))
+                .addField(EmbedCreateFields.Field.of("Partnered",
+                    "" + guild.getFeatures().contains("PARTNERED"), true))
+                .addField(EmbedCreateFields.Field.of("Verified",
+                    "" + guild.getFeatures().contains("VERIFIED"), true))
+                .addField(EmbedCreateFields.Field.of("Timestamp",
+                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                    "guildId = " + guild.getId().asString() + "\n" +
+                    "```", false))
+                .build())
+            .build()).onErrorStop().subscribe();
     }
 
     public void sendGuildLeave(Guild guild) {
         webhook.execute(WebhookExecuteSpec.builder()
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":heavy_minus_sign: | Bot removed")
-                        .description("Bot left **" + guild.getName() + "**.")
-                        .addField(EmbedCreateFields.Field.of("Timestamp",
-                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                                "guildId = " + guild.getId().asString() + "\n" +
-                                "```", false))
-                        .build())
-                .build()).onErrorStop().block();
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":heavy_minus_sign: | Bot removed")
+                .description("Bot left **" + guild.getName() + "**.")
+                .addField(EmbedCreateFields.Field.of("Timestamp",
+                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                    "guildId = " + guild.getId().asString() + "\n" +
+                    "```", false))
+                .build())
+            .build()).onErrorStop().subscribe();
     }
 
     public void sendError(Throwable throwable) {
         webhook.execute(WebhookExecuteSpec.builder()
-                .content("@everyone")
-                .addEmbed(EmbedCreateSpec.builder()
-                        .title(":warning: | Error")
-                        .description("`" + throwable.getClass().getName() + "` occured!" +
-                                "\n`" + throwable + "`")
-                        .build())
-                .build()).onErrorStop().block();
+            .content("@everyone")
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":warning: | Error")
+                .description("`" + throwable.getClass().getName() + "` occured!" +
+                    "\n`" + throwable + "`")
+                .build())
+            .build()).onErrorStop().subscribe();
     }
 
 }

@@ -1,16 +1,10 @@
 package tv.banko.antiscam.api;
 
 import discord4j.core.object.entity.Member;
-import discord4j.rest.request.Router;
-import discord4j.rest.route.Route;
 import okhttp3.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -33,12 +27,12 @@ public class DiscordAPI {
         String url = "https://discord.com/api/v9/guilds/" + member.getGuildId().asString() + "/members/" + member.getId().asString();
 
         Request request = new Request.Builder()
-                .url(url)
-                .header("Authorization", "Bot " + token)
-                .patch(RequestBody.create(("{\"communication_disabled_until\":\"" +
-                        format.format(new Date(timestamp)) + "\"}").getBytes(),
-                        MediaType.parse("application/json")))
-                .build();
+            .url(url)
+            .header("Authorization", "Bot " + token)
+            .patch(RequestBody.create(("{\"communication_disabled_until\":\"" +
+                    format.format(new Date(timestamp)) + "\"}").getBytes(),
+                MediaType.parse("application/json")))
+            .build();
 
         try (Response response = client.newCall(request).execute()) {
             return response.isSuccessful();

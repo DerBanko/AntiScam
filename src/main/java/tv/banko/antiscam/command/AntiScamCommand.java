@@ -39,7 +39,15 @@ public class AntiScamCommand extends DefaultCommand {
 
         ImmutableApplicationCommandRequest.Builder request = ApplicationCommandRequest.builder()
             .name(commandName)
-            .description("manage the AntiScam bot");
+            .description("Manage the AntiScam bot");
+
+        // /antiscam help
+
+        request.addOption(ApplicationCommandOptionData.builder()
+            .name("help")
+            .description("Overview")
+            .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+            .build());
 
         // /antiscam list
 
@@ -214,6 +222,20 @@ public class AntiScamCommand extends DefaultCommand {
 
         ApplicationCommandInteractionOption first = list.get(0);
 
+        switch (first.getName().toLowerCase()) {
+            case "help" -> help(event);
+            case "list" -> listPhrases(event);
+            case "log" -> setLog(event);
+            case "punishment" -> setPunishment(event);
+            case "add" -> addURL(event);
+            case "remove" -> removeURL(event);
+            case "violation" -> violation(event);
+        }
+
+        if (first.getName().equalsIgnoreCase("help")) {
+            return help(event);
+        }
+
         if (first.getName().equalsIgnoreCase("list")) {
             return listPhrases(event);
         }
@@ -241,6 +263,35 @@ public class AntiScamCommand extends DefaultCommand {
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(getEmbedToRespond("no_argument_given"))
+            .build());
+    }
+
+    private Mono<?> help(ChatInputInteractionEvent event) {
+        return event.editReply(InteractionReplyEditSpec.builder()
+            .contentOrNull(null)
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":bookmark_tabs: | Help and overview")
+                .description("""
+                    Hey, thanks for using **AntiScam**.
+
+                    :warning: Commands are only available for users having following permission: `ADMINISTRATOR`.
+
+                    To setup the bot, use the following commands:
+                     - `/antiscam log <Channel>` to **log messages** filtered by **AntiScam**
+                     - `/antiscam punishment <Punishment>` to change the **punishment** the users will receive if they send scam links
+
+                    To add new urls use `/antiscam add <URL>`.
+
+                    **Beta**: Currently there is a **beta** version on our new **violation system**.
+                    The algorithm checks if the message **contains a url**, afterwards it checks if the message contains **specific phrases** like `nitro`, ...
+                    To change the punishments users will receive use `/antiscam punishment <Punishment> [Category]`.
+
+                    If you have any ideas to improve **AntiScam**, consider joining my [Discord Server](https://discord.gg/YaWfmGmvSN).
+                    This bot is [Open Source](https://github.com/DerBanko/AntiScam).
+                    Consider [inviting the bot](https://banko.tv/r/invite-antiscam).
+                    """)
+                .timestamp(Instant.now())
+                .build())
             .build());
     }
 
@@ -486,10 +537,10 @@ public class AntiScamCommand extends DefaultCommand {
         ApplicationCommandInteractionOption thirdOption = list.stream().filter(o ->
             o.getName().equalsIgnoreCase("category")).findFirst().orElse(null);
 
-        if(thirdOption != null) {
+        if (thirdOption != null) {
             ApplicationCommandInteractionOptionValue thirdValue = thirdOption.getValue().orElse(null);
 
-            if(thirdValue != null) {
+            if (thirdValue != null) {
                 category = thirdValue.asString();
             }
         }

@@ -6,7 +6,10 @@ import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
-import discord4j.core.spec.*;
+import discord4j.core.spec.EmbedCreateFields;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.MessageEditSpec;
 import discord4j.rest.util.Color;
 import tv.banko.antiscam.AntiScam;
 
@@ -37,13 +40,13 @@ public class ButtonManager {
     public void editMessage(Message message) {
         Optional<Embed> optionalEmbed = message.getEmbeds().stream().findFirst();
 
-        if(optionalEmbed.isEmpty()) {
+        if (optionalEmbed.isEmpty()) {
             return;
         }
 
         Optional<Embed.Footer> optionalFooter = optionalEmbed.get().getFooter();
 
-        if(optionalFooter.isEmpty()) {
+        if (optionalFooter.isEmpty()) {
             return;
         }
 

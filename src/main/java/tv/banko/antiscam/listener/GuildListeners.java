@@ -4,14 +4,10 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.guild.GuildCreateEvent;
 import discord4j.core.event.domain.guild.GuildDeleteEvent;
-import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.GuildChannel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.entity.channel.TextChannel;
-import discord4j.core.object.presence.ClientActivity;
-import discord4j.core.object.presence.ClientPresence;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 
@@ -28,18 +24,18 @@ public class GuildListeners extends DefaultListener {
 
                 Optional<TextChannel> optionalChannel = event.getGuild().getSystemChannel().blockOptional();
 
-                if(optionalChannel.isPresent()) {
-                    if(antiScam.getMessage().sendSetupMessage(optionalChannel.get())) {
+                if (optionalChannel.isPresent()) {
+                    if (antiScam.getMessage().sendSetupMessage(optionalChannel.get())) {
                         return Mono.empty();
                     }
                 }
 
                 for (GuildChannel channel : event.getGuild().getChannels().toStream().toList()) {
-                    if(!(channel instanceof GuildMessageChannel messageChannel)) {
+                    if (!(channel instanceof GuildMessageChannel messageChannel)) {
                         continue;
                     }
 
-                    if(antiScam.getMessage().sendSetupMessage(messageChannel)) {
+                    if (antiScam.getMessage().sendSetupMessage(messageChannel)) {
                         break;
                     }
                 }
@@ -55,7 +51,7 @@ public class GuildListeners extends DefaultListener {
             try {
                 Optional<Guild> guild = event.getGuild();
 
-                if(guild.isEmpty()) {
+                if (guild.isEmpty()) {
                     return Mono.empty();
                 }
 

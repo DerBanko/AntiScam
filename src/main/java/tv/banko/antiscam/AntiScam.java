@@ -14,18 +14,17 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import tv.banko.antiscam.admin.AdminManager;
-import tv.banko.antiscam.admin.command.AdminCommandManager;
 import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
-import tv.banko.antiscam.violation.ViolationManager;
 import tv.banko.antiscam.listener.GuildListeners;
 import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
 import tv.banko.antiscam.manage.MessageManager;
 import tv.banko.antiscam.manage.Monitor;
 import tv.banko.antiscam.manage.Stats;
+import tv.banko.antiscam.violation.ViolationManager;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -51,7 +50,7 @@ public class AntiScam {
     public AntiScam(String token) {
         this.client = DiscordClient.create(token);
         this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MESSAGES,
-                Intent.GUILD_INTEGRATIONS, Intent.GUILDS)).login().block();
+            Intent.GUILD_INTEGRATIONS, Intent.GUILDS)).login().block();
 
         this.scamAPI = new ScamAPI(this);
         this.discordAPI = new DiscordAPI(token);
@@ -75,8 +74,8 @@ public class AntiScam {
         new MonitorListeners(this, this.client, this.gateway);
 
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.gateway
-                .updatePresence(ClientPresence.online(ClientActivity.listening("Scam URLs | /antiscam | " + this.client
-                        .getGuilds().count().block() + " guilds"))).block(), 0, 10, TimeUnit.SECONDS);
+            .updatePresence(ClientPresence.online(ClientActivity.listening("Scam URLs | /antiscam | " + this.client
+                .getGuilds().count().block() + " guilds"))).block(), 0, 10, TimeUnit.SECONDS);
 
         Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
             monitor.sendError(e);
@@ -129,17 +128,17 @@ public class AntiScam {
         stats.sendScam(message);
 
         mongoDB.getLogCollection().sendMessage(snowflake.get(), EmbedCreateSpec.builder()
-                .title(":no_entry_sign: | Scam found")
-                .description("**Sender**: " + member.getMention() + " (" + member.getTag() + ")\n" +
-                        "**Channel**: " + channel.getMention() + " (" + channel.getName() + ")\n")
-                .addField(EmbedCreateFields.Field.of("Message", message.getContent(), false))
-                .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                        "userId = " + member.getId().asString() + "\n" +
-                        "channelId = " + channel.getId().asString() + "\n" +
-                        "messageId = " + message.getId().asString() + "\n" +
-                        "```", false))
-                .build());
+            .title(":no_entry_sign: | Scam found")
+            .description("**Sender**: " + member.getMention() + " (" + member.getTag() + ")\n" +
+                "**Channel**: " + channel.getMention() + " (" + channel.getName() + ")\n")
+            .addField(EmbedCreateFields.Field.of("Message", message.getContent(), false))
+            .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+            .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                "userId = " + member.getId().asString() + "\n" +
+                "channelId = " + channel.getId().asString() + "\n" +
+                "messageId = " + message.getId().asString() + "\n" +
+                "```", false))
+            .build());
     }
 
     public MongoDB getMongoDB() {

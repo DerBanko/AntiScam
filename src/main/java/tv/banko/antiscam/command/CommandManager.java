@@ -1,7 +1,6 @@
 package tv.banko.antiscam.command;
 
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.core.object.entity.Guild;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 

@@ -27,10 +27,10 @@ public class MongoDB {
         logger.setLevel(Level.SEVERE);
 
         MongoClientSettings settings = MongoClientSettings.builder()
-                .applyConnectionString(new ConnectionString("mongodb://mongodb:27017"))
-                .retryWrites(true)
-                .retryReads(true)
-                .build();
+            .applyConnectionString(new ConnectionString("mongodb://mongodb:27017"))
+            .retryWrites(true)
+            .retryReads(true)
+            .build();
 
         mongoClient = MongoClients.create(settings);
         database = getMongoClient().getDatabase("antiscam");

@@ -24,7 +24,7 @@ public class MessageListeners extends DefaultListener {
 
                 Optional<Snowflake> guildId = event.getGuildId();
 
-                if(guildId.isEmpty()) {
+                if (guildId.isEmpty()) {
                     return Mono.empty();
                 }
 
@@ -59,7 +59,7 @@ public class MessageListeners extends DefaultListener {
 
                 Optional<Snowflake> guildId = event.getGuildId();
 
-                if(guildId.isEmpty()) {
+                if (guildId.isEmpty()) {
                     return Mono.empty();
                 }
 

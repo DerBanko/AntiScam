@@ -2,7 +2,6 @@ package tv.banko.antiscam.command;
 
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.discordjson.json.ApplicationCommandData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +39,7 @@ public abstract class DefaultCommand {
         });*/
 
         if (client.getApplicationService().getGlobalApplicationCommands(applicationId).toStream().anyMatch(data ->
-                data.name().equalsIgnoreCase(commandName))) {
+            data.name().equalsIgnoreCase(commandName))) {
             client.getApplicationService().bulkOverwriteGlobalApplicationCommand(applicationId, List.of(request)).subscribe();
             return;
         }

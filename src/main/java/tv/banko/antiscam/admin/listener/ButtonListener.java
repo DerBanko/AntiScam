@@ -2,16 +2,13 @@ package tv.banko.antiscam.admin.listener;
 
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.object.Embed;
-import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
-import discord4j.rest.util.Color;
 import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.listener.DefaultListener;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 public class ButtonListener extends DefaultListener {
@@ -45,7 +42,7 @@ public class ButtonListener extends DefaultListener {
 
                 Optional<Embed> optionalEmbed = message.getEmbeds().stream().findFirst();
 
-                if(optionalEmbed.isEmpty()) {
+                if (optionalEmbed.isEmpty()) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
@@ -61,7 +58,7 @@ public class ButtonListener extends DefaultListener {
 
                 Optional<Embed.Footer> optionalFooter = embed.getFooter();
 
-                if(optionalFooter.isEmpty()) {
+                if (optionalFooter.isEmpty()) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
@@ -75,7 +72,7 @@ public class ButtonListener extends DefaultListener {
 
                 String phrase = optionalFooter.get().getText();
 
-                if(!antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(phrase)) {
+                if (!antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(phrase)) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
@@ -87,9 +84,9 @@ public class ButtonListener extends DefaultListener {
                     return;
                 }
 
-                if(event.getCustomId().equalsIgnoreCase("approve")) {
+                if (event.getCustomId().equalsIgnoreCase("approve")) {
 
-                    if(antiScam.getMongoDB().getScamCollection().isApprovedPhrase(phrase)) {
+                    if (antiScam.getMongoDB().getScamCollection().isApprovedPhrase(phrase)) {
                         event.reply(InteractionApplicationCommandCallbackSpec.builder()
                             .ephemeral(true)
                             .addEmbed(EmbedCreateSpec.builder()

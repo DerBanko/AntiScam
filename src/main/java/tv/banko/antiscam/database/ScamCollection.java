@@ -31,7 +31,7 @@ public class ScamCollection {
 
     public void addPhrase(String phrase, Snowflake userId, Snowflake guildId) {
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);
@@ -44,10 +44,10 @@ public class ScamCollection {
         }
 
         Document document = new Document()
-                .append("phrase", s.toLowerCase())
-                .append("guildId", guildId.asString())
-                .append("userId", userId.asString())
-                .append("approved", userId.asString().equals(BOT_OWNER_ID));
+            .append("phrase", s.toLowerCase())
+            .append("guildId", guildId.asString())
+            .append("userId", userId.asString())
+            .append("approved", userId.asString().equals(BOT_OWNER_ID));
 
         antiScam.getAdmin().getButton().sendApprovePhrase(phrase);
         collection.insertOne(document);
@@ -55,7 +55,7 @@ public class ScamCollection {
 
     public void approvePhrase(String phrase) {
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);
@@ -70,7 +70,7 @@ public class ScamCollection {
         list.add(s);
 
         collection.updateOne(Filters.eq("phrase", s),
-                new Document("$set", new Document().append("approved", true)));
+            new Document("$set", new Document().append("approved", true)));
     }
 
     public boolean containsScam(String message, Snowflake guildId) {
@@ -132,7 +132,7 @@ public class ScamCollection {
         List<String> list = new ArrayList<>();
 
         for (Document document : collection.find(Filters.and(Filters.eq("approved", false),
-                Filters.eq("guildId", guildId.asString())))) {
+            Filters.eq("guildId", guildId.asString())))) {
             if (document == null) {
                 continue;
             }
@@ -149,7 +149,7 @@ public class ScamCollection {
     public boolean isRegisteredPhrase(String phrase) {
 
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);
@@ -169,7 +169,7 @@ public class ScamCollection {
     public boolean isApprovedPhrase(String phrase) {
 
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);
@@ -184,7 +184,7 @@ public class ScamCollection {
     public boolean isRegisteredByGuild(String phrase, Snowflake guildId) {
 
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);
@@ -192,12 +192,12 @@ public class ScamCollection {
 
         MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
         return collection.find(Filters.and(Filters.eq("phrase", s),
-                Filters.eq("guildId", guildId.asString()))).first() != null;
+            Filters.eq("guildId", guildId.asString()))).first() != null;
     }
 
     public void removePhrase(String phrase) {
         String s = phrase.toLowerCase().replace("http://", "")
-                .replace("https://", "");
+            .replace("https://", "");
 
         if (s.endsWith("/")) {
             s = s.substring(0, s.length() - 1);

@@ -15,14 +15,6 @@ public enum ViolationType {
         this.maxLevel = maxLevel;
     }
 
-    public int getMinLevel() {
-        return minLevel;
-    }
-
-    public int getMaxLevel() {
-        return maxLevel;
-    }
-
     public static ViolationType getByScore(int score) {
         for (ViolationType type : values()) {
 
@@ -40,6 +32,13 @@ public enum ViolationType {
         return NONE;
     }
 
+    public int getMinLevel() {
+        return minLevel;
+    }
+
+    public int getMaxLevel() {
+        return maxLevel;
+    }
 
     @Override
     public String toString() {

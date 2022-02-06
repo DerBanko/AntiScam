@@ -3,15 +3,12 @@ package tv.banko.antiscam.database;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import discord4j.common.util.Snowflake;
-import discord4j.core.object.Embed;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
 
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public class LogCollection {
@@ -39,7 +36,7 @@ public class LogCollection {
         }
 
         collection.updateOne(Filters.eq("guildId", guild.asString()),
-                new Document("$set", document));
+            new Document("$set", document));
     }
 
     public void removeChannel(Snowflake guild) {
@@ -62,7 +59,7 @@ public class LogCollection {
         }
 
         Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(
-                document.getString("channelId"))).blockOptional();
+            document.getString("channelId"))).blockOptional();
 
         if (optional.isEmpty()) {
             removeChannel(guild);

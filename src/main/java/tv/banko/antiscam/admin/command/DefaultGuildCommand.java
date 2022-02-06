@@ -1,6 +1,5 @@
 package tv.banko.antiscam.admin.command;
 
-import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.discordjson.json.ApplicationCommandRequest;
@@ -33,7 +32,7 @@ public abstract class DefaultGuildCommand {
 
     protected final void register(ApplicationCommandRequest request) {
         if (client.getApplicationService().getGuildApplicationCommands(applicationId, guildId).toStream().anyMatch(data ->
-                data.name().equalsIgnoreCase(commandName))) {
+            data.name().equalsIgnoreCase(commandName))) {
             client.getApplicationService().bulkOverwriteGuildApplicationCommand(applicationId, guildId, List.of(request)).subscribe();
             return;
         }
