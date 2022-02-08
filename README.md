@@ -70,4 +70,4 @@ https://banko.tv/r/invite-antiscam
 
 # Special Thanks to our Translators
 
-@DerBanko - German (Germany)
+<contributions>
