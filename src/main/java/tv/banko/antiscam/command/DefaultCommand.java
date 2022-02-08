@@ -44,7 +44,7 @@ public abstract class DefaultCommand {
             return;
         }
 
-        client.getApplicationService().createGlobalApplicationCommand(applicationId, request).block();
+        client.getApplicationService().createGlobalApplicationCommand(applicationId, request).subscribe();
     }
 
     public abstract Mono<?> response(ChatInputInteractionEvent event);

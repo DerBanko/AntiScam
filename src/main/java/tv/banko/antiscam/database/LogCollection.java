@@ -3,13 +3,10 @@ package tv.banko.antiscam.database;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import discord4j.common.util.Snowflake;
-import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
-
-import java.util.Optional;
 
 public class LogCollection {
 
@@ -58,17 +55,10 @@ public class LogCollection {
             return;
         }
 
-        Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(
-            document.getString("channelId"))).blockOptional();
+        antiScam.getGateway().getChannelById(Snowflake.of(
+            document.getString("channelId"))).cast(GuildMessageChannel.class).subscribe(channel ->
+            channel.createMessage(spec).onErrorStop().subscribe());
 
-        if (optional.isEmpty()) {
-            removeChannel(guild);
-            return;
-        }
-
-        GuildMessageChannel channel = (GuildMessageChannel) optional.get();
-
-        channel.createMessage(spec).onErrorStop().subscribe();
     }
 
     public void sendMessages(EmbedCreateSpec spec, boolean pingHere) {
@@ -80,15 +70,9 @@ public class LogCollection {
                     return;
                 }
 
-                Optional<Channel> optional = antiScam.getGateway().getChannelById(Snowflake.of(
-                    document.getString("channelId"))).blockOptional();
-
-                if (optional.isEmpty()) {
-                    return;
-                }
-
-                ((GuildMessageChannel) optional.get()).createMessage(spec)
-                    .withContent(pingHere ? "@here" : "").onErrorStop().subscribe();
+                antiScam.getGateway().getChannelById(Snowflake.of(
+                    document.getString("channelId"))).cast(GuildMessageChannel.class).subscribe(channel ->
+                    channel.createMessage(spec).withContent(pingHere ? "@here" : "").onErrorStop().subscribe());
 
                 Thread.sleep(100);
             } catch (Exception e) {

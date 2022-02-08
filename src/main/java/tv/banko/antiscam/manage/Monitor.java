@@ -13,51 +13,29 @@ import java.time.Instant;
 public class Monitor {
 
     private final AntiScam antiScam;
-    private final Webhook webhook;
+    private Webhook webhook;
 
     public Monitor(AntiScam antiScam) {
         this.antiScam = antiScam;
 
-        webhook = this.antiScam.getGateway().getWebhookByIdWithToken(Snowflake.of(System.getenv("MONITOR_WEBHOOK_ID")),
-            System.getenv("MONITOR_WEBHOOK_TOKEN")).blockOptional().orElse(null);
-    }
-
-    public void sendOnline() {
-        webhook.execute(WebhookExecuteSpec.builder()
-            .addEmbed(EmbedCreateSpec.builder()
-                .title(":arrow_double_up: | Bot online")
-                .description("Bot is now **online**.")
-                .addField(EmbedCreateFields.Field.of("Timestamp",
-                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                .build())
-            .build()).onErrorStop().subscribe();
-    }
-
-    public void sendOffline() {
-        webhook.execute(WebhookExecuteSpec.builder()
-            .addEmbed(EmbedCreateSpec.builder()
-                .title(":arrow_double_down: | Bot offline")
-                .description("Bot is now **offline**.")
-                .addField(EmbedCreateFields.Field.of("Timestamp",
-                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                .build())
-            .build()).onErrorStop().subscribe();
+        antiScam.getGateway().getWebhookByIdWithToken(Snowflake.of(System.getenv("MONITOR_WEBHOOK_ID")),
+            System.getenv("MONITOR_WEBHOOK_TOKEN")).subscribe(webhook -> this.webhook = webhook);
     }
 
     public void sendGuildJoin(Guild guild) {
         webhook.execute(WebhookExecuteSpec.builder()
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":heavy_plus_sign: | Bot added")
-                .description("Bot joined **" + guild.getName() + "**.")
-                .addField(EmbedCreateFields.Field.of("Member Count",
+                .title(":heavy_plus_sign: | " + antiScam.getLanguage().get("bot_added"))
+                .description(antiScam.getLanguage().get("bot_added_detailed"))
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("member_count"),
                     "" + guild.getMemberCount(), true))
-                .addField(EmbedCreateFields.Field.of("Partnered",
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("partnered_guilds"),
                     "" + guild.getFeatures().contains("PARTNERED"), true))
-                .addField(EmbedCreateFields.Field.of("Verified",
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("verified_guilds"),
                     "" + guild.getFeatures().contains("VERIFIED"), true))
-                .addField(EmbedCreateFields.Field.of("Timestamp",
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp"),
                     "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("ids"), "```ini" + "\n" +
                     "guildId = " + guild.getId().asString() + "\n" +
                     "```", false))
                 .build())
@@ -67,11 +45,11 @@ public class Monitor {
     public void sendGuildLeave(Guild guild) {
         webhook.execute(WebhookExecuteSpec.builder()
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":heavy_minus_sign: | Bot removed")
-                .description("Bot left **" + guild.getName() + "**.")
-                .addField(EmbedCreateFields.Field.of("Timestamp",
+                .title(":heavy_plus_sign: | " + antiScam.getLanguage().get("bot_removed"))
+                .description(antiScam.getLanguage().get("bot_removed_detailed"))
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp"),
                     "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("ids"), "```ini" + "\n" +
                     "guildId = " + guild.getId().asString() + "\n" +
                     "```", false))
                 .build())
@@ -82,9 +60,10 @@ public class Monitor {
         webhook.execute(WebhookExecuteSpec.builder()
             .content("@everyone")
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":warning: | Error")
-                .description("`" + throwable.getClass().getName() + "` occured!" +
-                    "\n`" + throwable + "`")
+                .title(":warning: | " + antiScam.getLanguage().get("error"))
+                .description(antiScam.getLanguage().get("error_detailed")
+                    .replace("%exception%", throwable.getClass().getName())
+                    .replace("%stacktrace%", throwable.toString()))
                 .build())
             .build()).onErrorStop().subscribe();
     }

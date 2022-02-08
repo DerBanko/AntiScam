@@ -12,7 +12,6 @@ import java.util.List;
 
 public class ScamCollection {
 
-    private final String BOT_OWNER_ID = System.getenv("BOT_OWNER_ID");
     private final AntiScam antiScam;
 
     private final String collectionName;
@@ -29,7 +28,7 @@ public class ScamCollection {
         this.list = getApprovedPhrases();
     }
 
-    public void addPhrase(String phrase, Snowflake userId, Snowflake guildId) {
+    public void addPhrase(String phrase, Snowflake guildId, boolean approved) {
         String s = phrase.toLowerCase().replace("http://", "")
             .replace("https://", "");
 
@@ -46,10 +45,12 @@ public class ScamCollection {
         Document document = new Document()
             .append("phrase", s.toLowerCase())
             .append("guildId", guildId.asString())
-            .append("userId", userId.asString())
-            .append("approved", userId.asString().equals(BOT_OWNER_ID));
+            .append("approved", approved);
 
-        antiScam.getAdmin().getButton().sendApprovePhrase(phrase);
+        if (!approved) {
+            antiScam.getAdmin().getButton().sendApprovePhrase(phrase);
+        }
+
         collection.insertOne(document);
     }
 

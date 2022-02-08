@@ -8,6 +8,7 @@ import org.bson.Document;
 import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.punishment.PunishmentType;
 
+import java.util.Locale;
 import java.util.Optional;
 
 public class SettingsCollection {
@@ -35,6 +36,35 @@ public class SettingsCollection {
         document.append("punishment", type.toString());
 
         collection.updateOne(Filters.eq("guildId", guild.asString()), new Document("$set", document));
+    }
+
+    public void setLocale(Snowflake guildId, Locale locale) {
+        MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
+
+        Document document = collection.find(Filters.and(Filters.eq("guildId", guildId.asString()))).first();
+
+        if (document == null) {
+            collection.insertOne(new Document().append("guildId", guildId.asString()).append("locale", locale.toLanguageTag()));
+            return;
+        }
+
+        document.append("locale", locale.toLanguageTag());
+
+        collection.updateOne(Filters.eq("guildId", guildId.asString()), new Document("$set", document));
+    }
+
+    public Locale getLocale(Snowflake guildId) {
+        MongoCollection<Document> collection = mongoDB.getDatabase().getCollection(getCollectionName());
+
+        Document document = collection.find(Filters.and(Filters.eq("guildId", guildId.asString()))).first();
+
+        if (document == null || !document.containsKey("locale")) {
+            antiScam.getGateway().getGuildById(guildId).subscribe(guild ->
+                setLocale(guildId, guild.getPreferredLocale()));
+            return Locale.US;
+        }
+
+        return Locale.forLanguageTag(document.getString("locale"));
     }
 
     public void punish(Message message) {

@@ -43,14 +43,6 @@ You can create a local unzipped distribution with:
 - High violation (violation score 36-55)
 - Extreme violation (violation score 56+)
 
-## Found a not detected Link?
-
-You can add the link to your server blacklist with `/antiscam add <URL>`. If the Bot owner approves the link, it will
-get added to the global banlist.
-
-- Contribute to the [discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links) repository to make
-  the suspicious domain visible for everyone.
-
 ## Commands available
 
 - `/antiscam log <channel>`
@@ -60,6 +52,18 @@ get added to the global banlist.
 - `/antiscam list`
 - `/antiscam violation enable`
 - `/antiscam violation disable`
+
+# Contribute
+
+## Found a not detected URL?
+
+You can add the link to your server blacklist with `/antiscam add <URL>`. If the Bot owner approves the link, it will
+get added to the global banlist. Additionally you can contribute to the [discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links) repository.
+
+## Help us translate AntiScam
+
+Fork the repository, open `src/main/resources`, copy `messages_en_US.properties` and translate the values.
+Afterwards create a pull request and mention `Translation in [Language]` in it. We will merge it if the translations seem correct.
 
 # Invite
 

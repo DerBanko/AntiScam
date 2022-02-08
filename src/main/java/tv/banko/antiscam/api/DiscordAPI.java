@@ -23,7 +23,7 @@ public class DiscordAPI {
         format.setTimeZone(TimeZone.getTimeZone("CET"));
     }
 
-    public boolean timeoutMember(Member member, long timestamp) {
+    public void timeoutMember(Member member, long timestamp) {
         String url = "https://discord.com/api/v9/guilds/" + member.getGuildId().asString() + "/members/" + member.getId().asString();
 
         Request request = new Request.Builder()
@@ -34,11 +34,10 @@ public class DiscordAPI {
                 MediaType.parse("application/json")))
             .build();
 
-        try (Response response = client.newCall(request).execute()) {
-            return response.isSuccessful();
+        try {
+            client.newCall(request).execute();
         } catch (IOException e) {
             e.printStackTrace();
-            return false;
         }
     }
 }

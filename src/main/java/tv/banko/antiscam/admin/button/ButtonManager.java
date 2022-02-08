@@ -28,12 +28,13 @@ public class ButtonManager {
         antiScam.getGateway().getChannelById(Snowflake.of(System.getenv("PHRASE_CHANNEL_ID"))).cast(GuildMessageChannel.class)
             .subscribe(channel -> channel.createMessage(MessageCreateSpec.builder()
                 .addEmbed(EmbedCreateSpec.builder()
-                    .title(":newspaper: | New phrase")
-                    .description("**Phrase**: `" + phrase + "`")
-                    .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                    .title(":newspaper: | " + antiScam.getLanguage().get("new_phrase"))
+                    .description("**" + antiScam.getLanguage().get("phrase") + "**: `" + phrase + "`")
+                    .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp"),
+                        "<t:" + Instant.now().getEpochSecond() + ":f>", false))
                     .footer(phrase, "")
                     .build())
-                .addComponent(ActionRow.of(Button.primary("approve", "Approve Phrase")))
+                .addComponent(ActionRow.of(Button.primary("approve", antiScam.getLanguage().get("approve_phrase"))))
                 .build()).onErrorStop().subscribe());
     }
 
@@ -54,13 +55,14 @@ public class ButtonManager {
 
         message.edit(MessageEditSpec.builder()
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | Phrase approved")
-                .description("**Phrase**: `" + phrase + "`")
-                .addField(EmbedCreateFields.Field.of("Approved Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("phrase_approved"))
+                .description("**" + antiScam.getLanguage().get("phrase") + "**: `" + phrase + "`")
+                .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp"),
+                    "<t:" + Instant.now().getEpochSecond() + ":f>", false))
                 .footer(phrase, "")
                 .color(Color.of(104, 255, 59))
                 .build())
-            .addComponent(ActionRow.of(Button.secondary("remove", "Remove Phrase")))
+            .addComponent(ActionRow.of(Button.secondary("remove", antiScam.getLanguage().get("remove_phrase"))))
             .build()).onErrorStop().subscribe();
     }
 

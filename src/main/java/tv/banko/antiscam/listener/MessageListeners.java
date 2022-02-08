@@ -5,7 +5,6 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.MessageUpdateEvent;
-import discord4j.core.object.entity.Message;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 
@@ -47,28 +46,25 @@ public class MessageListeners extends DefaultListener {
                     return Mono.empty();
                 }
 
-                Message message = event.getMessage().block();
+                event.getMessage().subscribe(message -> {
 
-                if (message == null) {
-                    return Mono.empty();
-                }
+                    if (message.getContent().equalsIgnoreCase("")) {
+                        return;
+                    }
 
-                if (message.getContent().equalsIgnoreCase("")) {
-                    return Mono.empty();
-                }
+                    Optional<Snowflake> guildId = event.getGuildId();
 
-                Optional<Snowflake> guildId = event.getGuildId();
+                    if (guildId.isEmpty()) {
+                        return;
+                    }
 
-                if (guildId.isEmpty()) {
-                    return Mono.empty();
-                }
+                    if (!antiScam.isScam(message.getContent(), guildId.get())) {
+                        antiScam.getViolation().createDetector(message).check();
+                        return;
+                    }
 
-                if (!antiScam.isScam(message.getContent(), guildId.get())) {
-                    antiScam.getViolation().createDetector(message).check();
-                    return Mono.empty();
-                }
-
-                antiScam.punish(message);
+                    antiScam.punish(message);
+                });
                 return Mono.empty();
             } catch (Exception e) {
                 e.printStackTrace();

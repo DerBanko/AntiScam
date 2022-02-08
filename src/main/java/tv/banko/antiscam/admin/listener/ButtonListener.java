@@ -1,5 +1,6 @@
 package tv.banko.antiscam.admin.listener;
 
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.object.Embed;
 import discord4j.core.object.entity.Message;
@@ -24,6 +25,8 @@ public class ButtonListener extends DefaultListener {
                     return;
                 }
 
+                Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
                 Optional<Message> optionalMessage = event.getMessage();
 
                 if (optionalMessage.isEmpty()) {
@@ -45,11 +48,7 @@ public class ButtonListener extends DefaultListener {
                 if (optionalEmbed.isEmpty()) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
-                        .addEmbed(EmbedCreateSpec.builder()
-                            .title(":warning: | An error occurred")
-                            .description("Could **not find phrase**. Please try again later.")
-                            .timestamp(Instant.now())
-                            .build())
+                        .addEmbed(antiScam.getLanguage().getEmbed("admin_phrase_not_found", guildId))
                         .build()).subscribe();
                     return;
                 }
@@ -61,11 +60,7 @@ public class ButtonListener extends DefaultListener {
                 if (optionalFooter.isEmpty()) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
-                        .addEmbed(EmbedCreateSpec.builder()
-                            .title(":warning: | An error occurred")
-                            .description("Could **not find phrase**. Please try again later.")
-                            .timestamp(Instant.now())
-                            .build())
+                        .addEmbed(antiScam.getLanguage().getEmbed("admin_phrase_not_found", guildId))
                         .build()).subscribe();
                     return;
                 }
@@ -75,11 +70,7 @@ public class ButtonListener extends DefaultListener {
                 if (!antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(phrase)) {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
-                        .addEmbed(EmbedCreateSpec.builder()
-                            .title(":warning: | An error occurred")
-                            .description("This phrase is **not registered**.")
-                            .timestamp(Instant.now())
-                            .build())
+                        .addEmbed(antiScam.getLanguage().getEmbed("admin_no_phrase", guildId))
                         .build()).subscribe();
                     return;
                 }
@@ -89,11 +80,7 @@ public class ButtonListener extends DefaultListener {
                     if (antiScam.getMongoDB().getScamCollection().isApprovedPhrase(phrase)) {
                         event.reply(InteractionApplicationCommandCallbackSpec.builder()
                             .ephemeral(true)
-                            .addEmbed(EmbedCreateSpec.builder()
-                                .title(":warning: | An error occurred")
-                                .description("This phrase is **already approved**.")
-                                .timestamp(Instant.now())
-                                .build())
+                            .addEmbed(antiScam.getLanguage().getEmbed("admin_already_approved", guildId))
                             .build()).subscribe();
                         return;
                     }
@@ -105,8 +92,8 @@ public class ButtonListener extends DefaultListener {
                     event.reply(InteractionApplicationCommandCallbackSpec.builder()
                         .ephemeral(true)
                         .addEmbed(EmbedCreateSpec.builder()
-                            .title(":white_check_mark: | Phrase approved")
-                            .description("The phrase `" + phrase + "` has been **successfully approved**.")
+                            .title(":white_check_mark: | " + antiScam.getLanguage().get("url_approved", guildId))
+                            .description(antiScam.getLanguage().get("url_approved_detailed", guildId).replace("%url%", phrase))
                             .timestamp(Instant.now())
                             .build())
                         .build()).subscribe();
@@ -121,8 +108,8 @@ public class ButtonListener extends DefaultListener {
                 event.reply(InteractionApplicationCommandCallbackSpec.builder()
                     .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
-                        .title(":white_check_mark: | Phrase removed")
-                        .description("The phrase `" + phrase + "` has been **successfully removed**.")
+                        .title(":white_check_mark: | " + antiScam.getLanguage().get("url_removed", guildId))
+                        .description(antiScam.getLanguage().get("url_removed_detailed", guildId).replace("%url%", phrase))
                         .timestamp(Instant.now())
                         .build())
                     .build()).subscribe();

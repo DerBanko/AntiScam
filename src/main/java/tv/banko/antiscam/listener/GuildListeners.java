@@ -5,9 +5,6 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.guild.GuildCreateEvent;
 import discord4j.core.event.domain.guild.GuildDeleteEvent;
 import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.channel.GuildChannel;
-import discord4j.core.object.entity.channel.GuildMessageChannel;
-import discord4j.core.object.entity.channel.TextChannel;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 
@@ -22,24 +19,8 @@ public class GuildListeners extends DefaultListener {
             try {
                 antiScam.getMonitor().sendGuildJoin(event.getGuild());
 
-                Optional<TextChannel> optionalChannel = event.getGuild().getSystemChannel().blockOptional();
-
-                if (optionalChannel.isPresent()) {
-                    if (antiScam.getMessage().sendSetupMessage(optionalChannel.get())) {
-                        return Mono.empty();
-                    }
-                }
-
-                for (GuildChannel channel : event.getGuild().getChannels().toStream().toList()) {
-                    if (!(channel instanceof GuildMessageChannel messageChannel)) {
-                        continue;
-                    }
-
-                    if (antiScam.getMessage().sendSetupMessage(messageChannel)) {
-                        break;
-                    }
-                }
-
+                event.getGuild().getSystemChannel().subscribe(textChannel ->
+                    antiScam.getMessage().sendSetupMessage(textChannel));
                 return Mono.empty();
             } catch (Exception e) {
                 e.printStackTrace();

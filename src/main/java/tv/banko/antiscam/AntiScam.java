@@ -3,10 +3,8 @@ package tv.banko.antiscam;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.presence.ClientActivity;
 import discord4j.core.object.presence.ClientPresence;
 import discord4j.core.spec.EmbedCreateFields;
@@ -18,6 +16,7 @@ import tv.banko.antiscam.api.DiscordAPI;
 import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
+import tv.banko.antiscam.language.Language;
 import tv.banko.antiscam.listener.GuildListeners;
 import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
@@ -43,11 +42,14 @@ public class AntiScam {
     private final ViolationManager violation;
 
     private final AdminManager admin;
+    private final Language language;
 
     private final Monitor monitor;
     private final Stats stats;
 
     public AntiScam(String token) {
+        this.language = new Language(this);
+
         this.client = DiscordClient.create(token);
         this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MESSAGES,
             Intent.GUILD_INTEGRATIONS, Intent.GUILDS)).login().block();
@@ -73,9 +75,10 @@ public class AntiScam {
         new GuildListeners(this, this.client, this.gateway);
         new MonitorListeners(this, this.client, this.gateway);
 
-        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.gateway
-            .updatePresence(ClientPresence.online(ClientActivity.listening("Scam URLs | /antiscam | " + this.client
-                .getGuilds().count().block() + " guilds"))).block(), 0, 10, TimeUnit.SECONDS);
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> this.client
+                .getGuilds().count().subscribe(count -> this.gateway.updatePresence(ClientPresence.online(
+                    ClientActivity.listening(language.get("presence").replace("%count%", "" + count)))).subscribe()),
+            0, 10, TimeUnit.SECONDS);
 
         Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
             monitor.sendError(e);
@@ -109,36 +112,30 @@ public class AntiScam {
             return;
         }
 
-        Optional<Member> optionalMember = message.getAuthorAsMember().onErrorStop().blockOptional();
+        Snowflake guildId = snowflake.get();
 
-        if (optionalMember.isEmpty()) {
-            return;
-        }
+        message.getAuthorAsMember().onErrorStop().subscribe(member ->
+            message.getChannel().onErrorStop().cast(GuildMessageChannel.class).subscribe(channel -> {
+                stats.sendScam(message);
 
-        Member member = optionalMember.get();
-
-        Optional<MessageChannel> optionalChannel = message.getChannel().onErrorStop().blockOptional();
-
-        if (optionalChannel.isEmpty()) {
-            return;
-        }
-
-        GuildMessageChannel channel = (GuildMessageChannel) optionalChannel.get();
-
-        stats.sendScam(message);
-
-        mongoDB.getLogCollection().sendMessage(snowflake.get(), EmbedCreateSpec.builder()
-            .title(":no_entry_sign: | Scam found")
-            .description("**Sender**: " + member.getMention() + " (" + member.getTag() + ")\n" +
-                "**Channel**: " + channel.getMention() + " (" + channel.getName() + ")\n")
-            .addField(EmbedCreateFields.Field.of("Message", message.getContent(), false))
-            .addField(EmbedCreateFields.Field.of("Timestamp", "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-            .addField(EmbedCreateFields.Field.of("IDs", "```ini" + "\n" +
-                "userId = " + member.getId().asString() + "\n" +
-                "channelId = " + channel.getId().asString() + "\n" +
-                "messageId = " + message.getId().asString() + "\n" +
-                "```", false))
-            .build());
+                mongoDB.getLogCollection().sendMessage(guildId, EmbedCreateSpec.builder()
+                    .title(":no_entry_sign: | " + language.get("scam_url_detected", guildId))
+                    .description("**" + language.get("sender", guildId) + "**: " + member.getMention() +
+                        " (" + member.getTag() + ")\n" +
+                        "**" + language.get("channel", guildId) + "**: " + channel.getMention() +
+                        " (" + channel.getName() + ")\n")
+                    .addField(EmbedCreateFields.Field.of(language.get("message", guildId),
+                        message.getContent(), false))
+                    .addField(EmbedCreateFields.Field.of(language.get("timestamp", guildId),
+                        "<t:" + Instant.now().getEpochSecond() + ":f>", false))
+                    .addField(EmbedCreateFields.Field.of(language.get("ids", guildId),
+                        "```ini" + "\n" +
+                            "userId = " + member.getId().asString() + "\n" +
+                            "channelId = " + channel.getId().asString() + "\n" +
+                            "messageId = " + message.getId().asString() + "\n" +
+                            "```", false))
+                    .build());
+            }));
     }
 
     public MongoDB getMongoDB() {
@@ -171,5 +168,9 @@ public class AntiScam {
 
     public AdminManager getAdmin() {
         return admin;
+    }
+
+    public Language getLanguage() {
+        return language;
     }
 }

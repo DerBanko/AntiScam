@@ -1,6 +1,5 @@
 package tv.banko.antiscam.punishment;
 
-import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.BanQuerySpec;
 import tv.banko.antiscam.AntiScam;
@@ -37,33 +36,30 @@ public record PunishmentType(String action, int duration) {
             return;
         }
 
-        Member member = message.getAuthorAsMember().onErrorStop().blockOptional().orElse(null);
+        message.delete().onErrorStop().subscribe();
 
-        message.delete().onErrorStop().block();
-
-        if (member == null) {
-            return;
-        }
-
-        try {
-            switch (action) {
-                case "KICK": {
-                    member.kick("message contained scam content").onErrorStop().block();
+        message.getAuthorAsMember().onErrorStop().subscribe(member -> {
+            try {
+                switch (action) {
+                    case "KICK": {
+                        member.kick(antiScam.getLanguage().get("punishment_reason", member.getGuildId()))
+                            .onErrorStop().subscribe();
+                    }
+                    case "BAN": {
+                        member.ban(BanQuerySpec.builder()
+                            .reason(antiScam.getLanguage().get("punishment_reason", member.getGuildId()))
+                            .deleteMessageDays(0)
+                            .build()).onErrorStop().subscribe();
+                    }
+                    case "TIMEOUT": {
+                        antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
+                            (duration * 1000L));
+                    }
                 }
-                case "BAN": {
-                    member.ban(BanQuerySpec.builder()
-                        .reason("message contained scam content")
-                        .deleteMessageDays(0)
-                        .build()).onErrorStop().block();
-                }
-                case "TIMEOUT": {
-                    antiScam.getDiscordAPI().timeoutMember(member, System.currentTimeMillis() +
-                        (duration * 1000L));
-                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     @Override

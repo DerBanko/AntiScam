@@ -15,7 +15,6 @@ import discord4j.core.spec.InteractionFollowupCreateSpec;
 import discord4j.core.spec.InteractionReplyEditSpec;
 import discord4j.discordjson.json.*;
 import discord4j.rest.util.Permission;
-import discord4j.rest.util.PermissionSet;
 import reactor.core.publisher.Mono;
 import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.database.ScamCollection;
@@ -23,8 +22,7 @@ import tv.banko.antiscam.punishment.PunishmentType;
 import tv.banko.antiscam.violation.ViolationType;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class AntiScamCommand extends DefaultCommand {
@@ -170,6 +168,45 @@ public class AntiScamCommand extends DefaultCommand {
                 .build())
             .build());
 
+        // /antiscam language <Language>
+
+        ImmutableApplicationCommandOptionData.Builder language = ApplicationCommandOptionData.builder()
+            .name("type")
+            .description("The language (use one of the selection)")
+            .type(ApplicationCommandOption.Type.STRING.getValue())
+            .required(true);
+
+        List<String> keys = new ArrayList<>();
+
+        for (Locale locale : Locale.getAvailableLocales()) {
+            try {
+                if (ResourceBundle.getBundle("messages", locale) == null) {
+                    continue;
+                }
+
+                String key = locale.getDisplayLanguage() + " (" + locale.getCountry() + ")";
+
+                if (keys.contains(key)) {
+                    continue;
+                }
+
+                keys.add(key);
+
+                language.addChoice(ApplicationCommandOptionChoiceData.builder()
+                    .name(key)
+                    .value(locale.toLanguageTag())
+                    .build());
+            } catch (MissingResourceException ignored) {
+            }
+        }
+
+        request.addOption(ApplicationCommandOptionData.builder()
+            .name("language")
+            .description("Change the language of the bot (commands are currently excluded)")
+            .type(ApplicationCommandOption.Type.SUB_COMMAND.getValue())
+            .addOption(language.build())
+            .build());
+
         register(request.build());
     }
 
@@ -179,131 +216,90 @@ public class AntiScamCommand extends DefaultCommand {
             return Mono.empty();
         }
 
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
         Optional<Member> optionalMember = event.getInteraction().getMember();
 
         if (optionalMember.isEmpty()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_permission"))
+            return event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
                 .build());
         }
 
         Member member = optionalMember.get();
 
-        Optional<PermissionSet> optionalPermissions = member.getBasePermissions().blockOptional();
+        member.getBasePermissions().subscribe(permissions -> {
 
-        if (optionalPermissions.isEmpty()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_permission"))
-                .build());
-        }
+            if (permissions.isEmpty()) {
+                event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
+                    .build()).subscribe();
+                return;
+            }
 
-        if (!optionalPermissions.get().contains(Permission.ADMINISTRATOR)) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_permission"))
-                .build());
-        }
+            if (!permissions.contains(Permission.ADMINISTRATOR)) {
+                event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
+                    .build()).subscribe();
+                return;
+            }
 
-        List<ApplicationCommandInteractionOption> list = event.getOptions();
+            List<ApplicationCommandInteractionOption> list = event.getOptions();
 
-        if (list.isEmpty()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_argument_given"))
-                .build());
-        }
+            if (list.isEmpty()) {
+                event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                    .build()).subscribe();
+                return;
+            }
 
-        event.reply(InteractionApplicationCommandCallbackSpec.builder()
-            .content("<a:loadingDownload:806936664521703435> Loading...")
-            .ephemeral(true)
-            .build()).block();
+            event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                .content("<a:loadingDownload:806936664521703435> " + antiScam.getLanguage().get("loading",
+                    event.getInteraction().getGuildId().orElse(null)) + "...")
+                .ephemeral(true)
+                .build()).subscribe();
 
-        ApplicationCommandInteractionOption first = list.get(0);
+            ApplicationCommandInteractionOption first = list.get(0);
 
-        switch (first.getName().toLowerCase()) {
-            case "help" -> help(event);
-            case "list" -> listPhrases(event);
-            case "log" -> setLog(event);
-            case "punishment" -> setPunishment(event);
-            case "add" -> addURL(event);
-            case "remove" -> removeURL(event);
-            case "violation" -> violation(event);
-        }
+            switch (first.getName().toLowerCase()) {
+                case "help" -> help(event).subscribe();
+                case "list" -> listPhrases(event).subscribe();
+                case "log" -> setLog(event).subscribe();
+                case "punishment" -> setPunishment(event).subscribe();
+                case "add" -> addURL(event).subscribe();
+                case "remove" -> removeURL(event).subscribe();
+                case "violation" -> violation(event).subscribe();
+                case "language" -> language(event).subscribe();
+                default -> event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                    .build()).subscribe();
+            }
+        });
 
-        if (first.getName().equalsIgnoreCase("help")) {
-            return help(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("list")) {
-            return listPhrases(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("log")) {
-            return setLog(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("punishment")) {
-            return setPunishment(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("add")) {
-            return addURL(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("remove")) {
-            return removeURL(event);
-        }
-
-        if (first.getName().equalsIgnoreCase("violation")) {
-            return violation(event);
-        }
-
-        return event.editReply(InteractionReplyEditSpec.builder()
-            .contentOrNull(null)
-            .addEmbed(getEmbedToRespond("no_argument_given"))
-            .build());
+        return Mono.justOrEmpty(true);
     }
 
     private Mono<?> help(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":bookmark_tabs: | Help and overview")
-                .description("""
-                    Hey, thanks for using **AntiScam**.
-
-                    :warning: Commands are only available for users having following permission: `ADMINISTRATOR`.
-
-                    To setup the bot, use the following commands:
-                     - `/antiscam log <Channel>` to **log messages** filtered by **AntiScam**
-                     - `/antiscam punishment <Punishment>` to change the **punishment** the users will receive if they send scam links
-
-                    To add new urls use `/antiscam add <URL>`.
-
-                    **Beta**: Currently there is a **beta** version on our new **violation system**.
-                    The algorithm checks if the message **contains a url**, afterwards it checks if the message contains **specific phrases** like `nitro`, ...
-                    **Enable** the beta version using `/antiscam violation enable`.
-                    To change the punishments users will receive use `/antiscam punishment <Punishment> [Category]`.
-
-                    If you have any ideas to improve **AntiScam**, consider joining my [Discord Server](https://discord.gg/YaWfmGmvSN).
-                    This bot is [Open Source](https://github.com/DerBanko/AntiScam).
-                    Consider [inviting the bot](https://banko.tv/r/invite-antiscam).
-                    """)
+                .title(":bookmark_tabs: | " + antiScam.getLanguage().get("help", guildId))
+                .description(antiScam.getLanguage().get("help_detailed", guildId))
                 .timestamp(Instant.now())
                 .build())
             .build());
     }
 
     private Mono<?> listPhrases(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
 
-        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
-
-        if (optionalSnowflake.isEmpty()) {
+        if (guildId == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", null))
                 .build());
         }
 
@@ -311,7 +307,7 @@ public class AntiScamCommand extends DefaultCommand {
 
         List<String> github = antiScam.getScamAPI().getGithubDomains();
         List<String> approved = collection.getApprovedPhrases();
-        List<String> nonApproved = collection.getGuildNonApprovedPhrases(optionalSnowflake.get());
+        List<String> nonApproved = collection.getGuildNonApprovedPhrases(guildId);
 
         StringBuilder builder = new StringBuilder();
 
@@ -321,10 +317,10 @@ public class AntiScamCommand extends DefaultCommand {
                 event.createFollowup(InteractionFollowupCreateSpec.builder()
                     .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
-                        .title(":scroll: | Approved phrases")
+                        .title(":scroll: | " + antiScam.getLanguage().get("approved_phrases", guildId))
                         .description(builder.toString())
                         .build())
-                    .build()).block();
+                    .build()).subscribe();
                 builder = new StringBuilder();
             }
 
@@ -339,10 +335,10 @@ public class AntiScamCommand extends DefaultCommand {
             event.createFollowup(InteractionFollowupCreateSpec.builder()
                 .ephemeral(true)
                 .addEmbed(EmbedCreateSpec.builder()
-                    .title(":scroll: | Approved phrases")
+                    .title(":scroll: | " + antiScam.getLanguage().get("approved_phrases", guildId))
                     .description(builder.toString())
                     .build())
-                .build()).block();
+                .build()).subscribe();
             builder = new StringBuilder();
         }
 
@@ -352,10 +348,10 @@ public class AntiScamCommand extends DefaultCommand {
                 event.createFollowup(InteractionFollowupCreateSpec.builder()
                     .ephemeral(true)
                     .addEmbed(EmbedCreateSpec.builder()
-                        .title(":scroll: | Non approved phrases")
+                        .title(":scroll: | " + antiScam.getLanguage().get("non_approved_phrases", guildId))
                         .description(builder.toString())
                         .build())
-                    .build()).block();
+                    .build()).subscribe();
                 builder = new StringBuilder();
             }
 
@@ -370,30 +366,35 @@ public class AntiScamCommand extends DefaultCommand {
             event.createFollowup(InteractionFollowupCreateSpec.builder()
                 .ephemeral(true)
                 .addEmbed(EmbedCreateSpec.builder()
-                    .title(":scroll: | Non approved phrases")
+                    .title(":scroll: | " + antiScam.getLanguage().get("non_approved_phrases", guildId))
                     .description(builder.toString())
                     .build())
-                .build()).block();
+                .build()).subscribe();
         }
 
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":scroll: | List of phrases")
-                .description("`Github Phrases`: **" + github.size() + " Phrase" +
-                    (github.size() != 1 ? "s" : "") + " ** ([Source](" + antiScam.getScamAPI().getUrl() + "))" +
+                .title(":scroll: | " + antiScam.getLanguage().get("list_phrases", guildId))
+                .description(antiScam.getLanguage().get("github_phrases", guildId) + ": **" + github.size() + " " +
+                    (github.size() == 1 ? antiScam.getLanguage().get("phrase", guildId) :
+                        antiScam.getLanguage().get("phrase_plural", guildId)) + "** ([" +
+                    antiScam.getLanguage().get("source", guildId) + "](" + antiScam.getScamAPI().getUrl() + "))" +
 
-                    "\n`Approved Phrases`: **" + approved.size() + " Phrase" +
-                    (approved.size() != 1 ? "s" : "") + "** (added via `/antiscam add <URL>` and approved)" +
+                    "\n" + antiScam.getLanguage().get("approved_phrases", guildId) + ": **" + approved.size() + " " +
+                    (approved.size() == 1 ? antiScam.getLanguage().get("phrase", guildId) :
+                        antiScam.getLanguage().get("phrase_plural", guildId)) + "**" +
 
-                    "\n`Non approved Phrases`: **" + nonApproved.size() + " Phrase"
-                    + (nonApproved.size() != 1 ? "s" : "") + "** (added via `/antiscam add <URL>` on your guild)")
+                    "\n" + antiScam.getLanguage().get("non_approved_phrases", guildId) + ": **" + nonApproved.size() + " "
+                    + (nonApproved.size() == 1 ? antiScam.getLanguage().get("phrase", guildId) :
+                    antiScam.getLanguage().get("phrase_plural", guildId)) + "**")
                 .timestamp(Instant.now())
                 .build())
             .build());
     }
 
     private Mono<?> setLog(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
 
         ApplicationCommandInteractionOption first = event.getOptions().get(0);
 
@@ -402,7 +403,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (list.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -412,7 +413,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstOption == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -421,52 +422,50 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstValue == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
-        Optional<Channel> optionalChannel = firstValue.asChannel().blockOptional();
+        firstValue.asChannel().subscribe(channel -> {
+            if (!(channel.getType().equals(Channel.Type.GUILD_NEWS) || channel.getType().equals(Channel.Type.GUILD_TEXT))) {
+                event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(antiScam.getLanguage().getEmbed("no_text_channel", guildId))
+                    .build()).subscribe();
+                return;
+            }
 
-        if (optionalChannel.isEmpty()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
+            Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
+
+            if (optionalSnowflake.isEmpty()) {
+                event.editReply(InteractionReplyEditSpec.builder()
+                    .contentOrNull(null)
+                    .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                    .build()).subscribe();
+                return;
+            }
+
+            GuildMessageChannel messageChannel = (GuildMessageChannel) channel;
+
+            this.antiScam.getMongoDB().getLogCollection().setChannel(optionalSnowflake.get(), messageChannel.getId());
+
+            event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("channel_not_existing"))
+                .addEmbed(EmbedCreateSpec.builder()
+                    .title(":white_check_mark: | " + antiScam.getLanguage().get("log_set", guildId))
+                    .description(antiScam.getLanguage().get("log_set_detailed", guildId)
+                        .replace("%channel%", messageChannel.getMention()))
+                    .timestamp(Instant.now())
+                    .build())
                 .build());
-        }
+        });
 
-        Channel channel = optionalChannel.get();
-
-        if (!(channel.getType().equals(Channel.Type.GUILD_NEWS) || channel.getType().equals(Channel.Type.GUILD_TEXT))) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_text_channel"))
-                .build());
-        }
-
-        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
-
-        if (optionalSnowflake.isEmpty()) {
-            return event.editReply(InteractionReplyEditSpec.builder()
-                .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
-                .build());
-        }
-
-        GuildMessageChannel messageChannel = (GuildMessageChannel) channel;
-
-        this.antiScam.getMongoDB().getLogCollection().setChannel(optionalSnowflake.get(), messageChannel.getId());
-
-        return event.editReply(InteractionReplyEditSpec.builder()
-            .contentOrNull(null)
-            .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | Log set")
-                .description("Successfully changed log channel to " + messageChannel.getMention() + ".")
-                .timestamp(Instant.now())
-                .build())
-            .build());
+        return Mono.justOrEmpty(true);
     }
 
     private Mono<?> setPunishment(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
 
         ApplicationCommandInteractionOption first = event.getOptions().get(0);
 
@@ -475,7 +474,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (list.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -485,7 +484,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstOption == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -494,18 +493,16 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstValue == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
         String value = firstValue.asString();
 
-        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
-
-        if (optionalSnowflake.isEmpty()) {
+        if (guildId == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", null))
                 .build());
         }
 
@@ -547,21 +544,17 @@ public class AntiScamCommand extends DefaultCommand {
         }
 
         switch (category) {
-            case "scam" -> this.antiScam.getMongoDB().getSettingsCollection().setPunishment(optionalSnowflake.get(), type);
-            case "medium" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(optionalSnowflake.get(),
+            case "scam" -> this.antiScam.getMongoDB().getSettingsCollection().setPunishment(guildId, type);
+            case "medium" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(guildId,
                 ViolationType.MEDIUM, type);
-            case "high" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(optionalSnowflake.get(),
+            case "high" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(guildId,
                 ViolationType.HIGH, type);
-            case "extreme" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(optionalSnowflake.get(),
+            case "extreme" -> this.antiScam.getMongoDB().getViolationCollection().setViolationPunishment(guildId,
                 ViolationType.EXTREME, type);
             default -> {
                 return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
-                    .addEmbed(EmbedCreateSpec.builder()
-                        .title(":warning: | An error occurred")
-                        .description("Could not find category `" + category + "`.")
-                        .timestamp(Instant.now())
-                        .build())
+                    .addEmbed(antiScam.getLanguage().getEmbed("category_not_found", guildId))
                     .build());
             }
         }
@@ -569,8 +562,9 @@ public class AntiScamCommand extends DefaultCommand {
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | Punishment set")
-                .description("Successfully changed punishment to `" + type.getName() + "` in category `" + category + "`.")
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("punishment_set", guildId))
+                .description(antiScam.getLanguage().get("punishment_set_detailed", guildId)
+                    .replace("%type%", type.getName()).replace("%category%", category))
                 .timestamp(Instant.now())
                 .build())
             .build());
@@ -578,6 +572,8 @@ public class AntiScamCommand extends DefaultCommand {
 
     private Mono<?> addURL(ChatInputInteractionEvent event) {
 
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
         ApplicationCommandInteractionOption first = event.getOptions().get(0);
 
         List<ApplicationCommandInteractionOption> list = first.getOptions();
@@ -585,7 +581,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (list.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -595,7 +591,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstOption == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -604,7 +600,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstValue == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -615,45 +611,45 @@ public class AntiScamCommand extends DefaultCommand {
         if (optionalSnowflake.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
         if (!pattern.matcher(value).matches()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("no_url"))
+                .addEmbed(antiScam.getLanguage().getEmbed("no_url", guildId))
                 .build());
         }
 
         if (antiScam.isScam(value, optionalSnowflake.get())) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("already_registered"))
+                .addEmbed(antiScam.getLanguage().getEmbed("already_registered", guildId))
                 .build());
         }
 
         if (antiScam.getMongoDB().getScamCollection().isRegisteredPhrase(value)) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("needs_approvement"))
+                .addEmbed(antiScam.getLanguage().getEmbed("needs_approvement", guildId))
                 .build());
         }
 
-        antiScam.getMongoDB().getScamCollection().addPhrase(value, event.getInteraction().getUser().getId(),
-            optionalSnowflake.get());
+        antiScam.getMongoDB().getScamCollection().addPhrase(value, optionalSnowflake.get(), false);
 
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | URL added")
-                .description("Successfully added the url to the system.")
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("url_added", guildId))
+                .description(antiScam.getLanguage().get("url_added_detailed", guildId).replace("%url%", value))
                 .timestamp(Instant.now())
                 .build())
             .build());
     }
 
     private Mono<?> removeURL(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
 
         ApplicationCommandInteractionOption first = event.getOptions().get(0);
 
@@ -662,7 +658,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (list.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -672,7 +668,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstOption == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -681,27 +677,23 @@ public class AntiScamCommand extends DefaultCommand {
         if (firstValue == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
         String value = firstValue.asString().toLowerCase();
 
-        Optional<Snowflake> optionalSnowflake = event.getInteraction().getGuildId();
-
-        if (optionalSnowflake.isEmpty()) {
+        if (guildId == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", null))
                 .build());
         }
 
-        Snowflake guildId = optionalSnowflake.get();
-
-        if (!antiScam.isScam(value, optionalSnowflake.get())) {
+        if (!antiScam.isScam(value, guildId)) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("already_registered"))
+                .addEmbed(antiScam.getLanguage().getEmbed("already_registered", null))
                 .build());
         }
 
@@ -709,7 +701,7 @@ public class AntiScamCommand extends DefaultCommand {
             antiScam.getMongoDB().getScamCollection().isApprovedPhrase(value)) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("already_approved"))
+                .addEmbed(antiScam.getLanguage().getEmbed("already_approved", null))
                 .build());
         }
 
@@ -718,25 +710,22 @@ public class AntiScamCommand extends DefaultCommand {
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | URL removed")
-                .description("Successfully removed the url from the system.")
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("url_removed", guildId))
+                .description(antiScam.getLanguage().get("url_removed_detailed", guildId).replace("%url%", value))
                 .timestamp(Instant.now())
                 .build())
             .build());
     }
 
     private Mono<?> violation(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
 
-        Optional<Snowflake> optional = event.getInteraction().getGuildId();
-
-        if (optional.isEmpty()) {
+        if (guildId == null) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", null))
                 .build());
         }
-
-        Snowflake guildId = optional.get();
 
         ApplicationCommandInteractionOption first = event.getOptions().get(0);
 
@@ -745,7 +734,7 @@ public class AntiScamCommand extends DefaultCommand {
         if (list.isEmpty()) {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("not_enough_arguments"))
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                 .build());
         }
 
@@ -757,12 +746,12 @@ public class AntiScamCommand extends DefaultCommand {
             if (enable) {
                 return event.editReply(InteractionReplyEditSpec.builder()
                     .contentOrNull(null)
-                    .addEmbed(getEmbedToRespond("violation_already_enabled"))
+                    .addEmbed(antiScam.getLanguage().getEmbed("violation_already_enabled", guildId))
                     .build());
             }
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
-                .addEmbed(getEmbedToRespond("violation_already_disabled"))
+                .addEmbed(antiScam.getLanguage().getEmbed("violation_already_disabled", guildId))
                 .build());
         }
 
@@ -772,10 +761,8 @@ public class AntiScamCommand extends DefaultCommand {
             return event.editReply(InteractionReplyEditSpec.builder()
                 .contentOrNull(null)
                 .addEmbed(EmbedCreateSpec.builder()
-                    .title(":white_check_mark: | Violation beta enabled")
-                    .description("Successfully **enabled** the **violation beta system**.\nUse " +
-                        "`/antiscam punishment <Punishment> <Category>` " +
-                        "in order to **punish violations** automatically.")
+                    .title(":white_check_mark: | " + antiScam.getLanguage().get("violation_enable", guildId))
+                    .description(antiScam.getLanguage().get("violation_enable_detailed", guildId))
                     .timestamp(Instant.now())
                     .build())
                 .build());
@@ -783,73 +770,70 @@ public class AntiScamCommand extends DefaultCommand {
         return event.editReply(InteractionReplyEditSpec.builder()
             .contentOrNull(null)
             .addEmbed(EmbedCreateSpec.builder()
-                .title(":white_check_mark: | Violation beta disabled")
-                .description("Successfully removed the url from the system.")
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("violation_disable", guildId))
+                .description(antiScam.getLanguage().get("violation_disable_detailed", guildId))
                 .timestamp(Instant.now())
                 .build())
             .build());
     }
 
-    private EmbedCreateSpec getEmbedToRespond(String key) {
-        return switch (key) {
-            case "no_permission" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("You **need** the following permission to execute this command: `ADMINISTRATOR`.")
+    private Mono<?> language(ChatInputInteractionEvent event) {
+        Snowflake guildId = event.getInteraction().getGuildId().orElse(null);
+
+
+        ApplicationCommandInteractionOption first = event.getOptions().get(0);
+
+        List<ApplicationCommandInteractionOption> list = first.getOptions();
+
+        if (list.isEmpty()) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                .build());
+        }
+
+        ApplicationCommandInteractionOption firstOption = list.stream().filter(o ->
+            o.getName().equalsIgnoreCase("type")).findFirst().orElse(null);
+
+        if (firstOption == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                .build());
+        }
+
+        ApplicationCommandInteractionOptionValue firstValue = firstOption.getValue().orElse(null);
+
+        if (firstValue == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
+                .build());
+        }
+
+        String value = firstValue.asString();
+
+        if (guildId == null) {
+            return event.editReply(InteractionReplyEditSpec.builder()
+                .contentOrNull(null)
+                .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", null))
+                .build());
+        }
+
+        Locale locale = Locale.forLanguageTag(value);
+
+        antiScam.getMongoDB().getSettingsCollection().setLocale(guildId, locale);
+
+        return event.editReply(InteractionReplyEditSpec.builder()
+            .contentOrNull(null)
+            .addEmbed(EmbedCreateSpec.builder()
+                .title(":white_check_mark: | " + antiScam.getLanguage().get("locale", guildId))
+                .description(antiScam.getLanguage().get("locale_detailed", guildId)
+                    .replace("%locale%", locale.getDisplayLanguage(locale) +
+                        " (" + locale.getDisplayCountry(locale) + ")"))
                 .timestamp(Instant.now())
-                .build();
-            case "no_argument_given" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("You **need** to add **arguments**.")
-                .timestamp(Instant.now())
-                .build();
-            case "not_enough_arguments" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("You **need** to add more **arguments**.")
-                .timestamp(Instant.now())
-                .build();
-            case "channel_not_existing" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("This channel is **not existing**.")
-                .timestamp(Instant.now())
-                .build();
-            case "no_text_channel" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("This channel is **no text channel**.")
-                .timestamp(Instant.now())
-                .build();
-            case "already_registered" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("This phrase is **already registered**.")
-                .timestamp(Instant.now())
-                .build();
-            case "needs_approvement" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("This phrase is **already registered** but needs to be **approved** by Banko.")
-                .timestamp(Instant.now())
-                .build();
-            case "already_approved" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("This phrase is a **public phrase** (already approved by Banko). You cannot remove this phrase!")
-                .timestamp(Instant.now())
-                .build();
-            case "no_url" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("URLs have to start with **http://** or **https://** and end with a **domain ending**.")
-                .timestamp(Instant.now())
-                .build();
-            case "violation_already_enabled" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("The **violation beta** is already enabled.")
-                .timestamp(Instant.now())
-                .build();
-            case "violation_already_disabled" -> EmbedCreateSpec.builder()
-                .title(":warning: | An error occurred")
-                .description("The **violation beta** is already disabled.")
-                .timestamp(Instant.now())
-                .build();
-            default -> EmbedCreateSpec.builder()
-                .description(key)
-                .build();
-        };
+                .build())
+            .build());
     }
+
 }

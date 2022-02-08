@@ -37,7 +37,7 @@ public abstract class DefaultGuildCommand {
             return;
         }
 
-        client.getApplicationService().createGuildApplicationCommand(applicationId, guildId, request).block();
+        client.getApplicationService().createGuildApplicationCommand(applicationId, guildId, request).subscribe();
     }
 
     public abstract Mono<?> response(ChatInputInteractionEvent event);
