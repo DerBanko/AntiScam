@@ -62,7 +62,7 @@ get added to the global banlist. Additionally you can contribute to the [discord
 
 ## Help us translate AntiScam
 
-Follow the guide in the CONTRIBUTING.md file.
+Follow the guide in the [CONTRIBUTING.md](https://github.com/DerBanko/AntiScam/blob/master/CONTRIBUTING.md) file.
 
 # Invite
 
