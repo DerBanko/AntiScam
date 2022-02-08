@@ -26,7 +26,8 @@ public class Monitor {
         webhook.execute(WebhookExecuteSpec.builder()
             .addEmbed(EmbedCreateSpec.builder()
                 .title(":heavy_plus_sign: | " + antiScam.getLanguage().get("bot_added"))
-                .description(antiScam.getLanguage().get("bot_added_detailed"))
+                .description(antiScam.getLanguage().get("bot_added_detailed")
+                    .replace("%guild%", guild.getName()))
                 .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("member_count"),
                     "" + guild.getMemberCount(), true))
                 .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("partnered_guilds"),
@@ -46,7 +47,8 @@ public class Monitor {
         webhook.execute(WebhookExecuteSpec.builder()
             .addEmbed(EmbedCreateSpec.builder()
                 .title(":heavy_plus_sign: | " + antiScam.getLanguage().get("bot_removed"))
-                .description(antiScam.getLanguage().get("bot_removed_detailed"))
+                .description(antiScam.getLanguage().get("bot_removed_detailed")
+                    .replace("%guild%", guild.getName()))
                 .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp"),
                     "<t:" + Instant.now().getEpochSecond() + ":f>", false))
                 .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("ids"), "```ini" + "\n" +

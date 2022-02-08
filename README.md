@@ -62,9 +62,12 @@ get added to the global banlist. Additionally you can contribute to the [discord
 
 ## Help us translate AntiScam
 
-Fork the repository, open `src/main/resources`, copy `messages_en_US.properties` and translate the values.
-Afterwards create a pull request and mention `Translation in [Language]` in it. We will merge it if the translations seem correct.
+Follow the guide in the CONTRIBUTING.md file.
 
 # Invite
 
 https://banko.tv/r/invite-antiscam
+
+# Special Thanks to our Translators
+
+@DerBanko - German (Germany)
