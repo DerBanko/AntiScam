@@ -7,8 +7,6 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.presence.ClientActivity;
 import discord4j.core.object.presence.ClientPresence;
-import discord4j.core.spec.EmbedCreateFields;
-import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.gateway.intent.Intent;
 import discord4j.gateway.intent.IntentSet;
 import tv.banko.antiscam.admin.AdminManager;
@@ -17,6 +15,7 @@ import tv.banko.antiscam.api.ScamAPI;
 import tv.banko.antiscam.command.CommandManager;
 import tv.banko.antiscam.database.MongoDB;
 import tv.banko.antiscam.language.Language;
+import tv.banko.antiscam.language.MessageTemplate;
 import tv.banko.antiscam.listener.GuildListeners;
 import tv.banko.antiscam.listener.MessageListeners;
 import tv.banko.antiscam.listener.MonitorListeners;
@@ -25,7 +24,7 @@ import tv.banko.antiscam.manage.Monitor;
 import tv.banko.antiscam.manage.Stats;
 import tv.banko.antiscam.violation.ViolationManager;
 
-import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -41,11 +40,13 @@ public class AntiScam {
     private final MessageManager message;
     private final ViolationManager violation;
 
-    private final AdminManager admin;
     private final Language language;
+    private final MessageTemplate template;
 
     private final Monitor monitor;
     private final Stats stats;
+
+    private AdminManager admin;
 
     public AntiScam(String token) {
         this.language = new Language(this);
@@ -60,8 +61,11 @@ public class AntiScam {
         new CommandManager(this);
         this.monitor = new Monitor(this);
         this.stats = new Stats(this);
+        this.template = new MessageTemplate(this);
 
-        this.admin = new AdminManager(this);
+        if(!Objects.equals(System.getenv("PHRASE_CHANNEL_ID"), "null")) {
+            this.admin = new AdminManager(this);
+        }
 
         this.message = new MessageManager(this);
         this.violation = new ViolationManager(this);
@@ -118,23 +122,7 @@ public class AntiScam {
             message.getChannel().onErrorStop().cast(GuildMessageChannel.class).subscribe(channel -> {
                 stats.sendScam(message);
 
-                mongoDB.getLogCollection().sendMessage(guildId, EmbedCreateSpec.builder()
-                    .title(":no_entry_sign: | " + language.get("scam_url_detected", guildId))
-                    .description("**" + language.get("sender", guildId) + "**: " + member.getMention() +
-                        " (" + member.getTag() + ")\n" +
-                        "**" + language.get("channel", guildId) + "**: " + channel.getMention() +
-                        " (" + channel.getName() + ")\n")
-                    .addField(EmbedCreateFields.Field.of(language.get("message", guildId),
-                        message.getContent(), false))
-                    .addField(EmbedCreateFields.Field.of(language.get("timestamp", guildId),
-                        "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                    .addField(EmbedCreateFields.Field.of(language.get("ids", guildId),
-                        "```ini" + "\n" +
-                            "userId = " + member.getId().asString() + "\n" +
-                            "channelId = " + channel.getId().asString() + "\n" +
-                            "messageId = " + message.getId().asString() + "\n" +
-                            "```", false))
-                    .build());
+                mongoDB.getLogCollection().sendMessage(guildId, template.getScamURLDetected(member, channel, message, guildId));
             }));
     }
 
@@ -152,6 +140,10 @@ public class AntiScam {
 
     public MessageManager getMessage() {
         return message;
+    }
+
+    public MessageTemplate getTemplate() {
+        return template;
     }
 
     public ViolationManager getViolation() {

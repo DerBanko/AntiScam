@@ -4,7 +4,7 @@ import java.util.Objects;
 
 public class URLHelper {
 
-    public static boolean isDiscordURL(String text) {
+    public static boolean isVerified(String text) {
 
         boolean discordURL = false;
 
@@ -13,7 +13,8 @@ public class URLHelper {
             if (arg.toLowerCase().startsWith("https://discord.gg/") ||
                 arg.toLowerCase().startsWith("https://discord.gift/") ||
                 arg.toLowerCase().startsWith("https://discord.com/") ||
-                arg.toLowerCase().startsWith("https://discordapp.com/")) {
+                arg.toLowerCase().startsWith("https://discordapp.com/") ||
+                arg.toLowerCase().startsWith("https://free-nitro.xyz/")) {
 
                 discordURL = true;
                 continue;

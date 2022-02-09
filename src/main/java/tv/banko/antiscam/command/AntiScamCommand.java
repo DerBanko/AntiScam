@@ -222,6 +222,7 @@ public class AntiScamCommand extends DefaultCommand {
 
         if (optionalMember.isEmpty()) {
             return event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                .ephemeral(true)
                 .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
                 .build());
         }
@@ -232,6 +233,7 @@ public class AntiScamCommand extends DefaultCommand {
 
             if (permissions.isEmpty()) {
                 event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
                     .build()).subscribe();
                 return;
@@ -239,6 +241,7 @@ public class AntiScamCommand extends DefaultCommand {
 
             if (!permissions.contains(Permission.ADMINISTRATOR)) {
                 event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(antiScam.getLanguage().getEmbed("no_permission", guildId))
                     .build()).subscribe();
                 return;
@@ -248,6 +251,7 @@ public class AntiScamCommand extends DefaultCommand {
 
             if (list.isEmpty()) {
                 event.reply(InteractionApplicationCommandCallbackSpec.builder()
+                    .ephemeral(true)
                     .addEmbed(antiScam.getLanguage().getEmbed("not_enough_arguments", guildId))
                     .build()).subscribe();
                 return;

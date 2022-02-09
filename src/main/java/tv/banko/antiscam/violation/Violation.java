@@ -3,13 +3,10 @@ package tv.banko.antiscam.violation;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.TopLevelGuildMessageChannel;
-import discord4j.core.spec.EmbedCreateFields;
-import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Permission;
 import tv.banko.antiscam.AntiScam;
 import tv.banko.antiscam.util.URLHelper;
 
-import java.time.Instant;
 import java.util.Locale;
 
 public class Violation {
@@ -25,7 +22,7 @@ public class Violation {
     }
 
     public void check() {
-        if (URLHelper.isDiscordURL(message.getContent())) {
+        if (URLHelper.isVerified(message.getContent())) {
             return;
         }
 
@@ -78,52 +75,13 @@ public class Violation {
                         }
 
                         message.delete().subscribe();
-                        antiScam.getMongoDB().getLogCollection().sendMessage(guildId, EmbedCreateSpec.builder()
-                            .title(":wastebasket: | " + antiScam.getLanguage().get("potential_scam_detected", guildId))
-                            .description("**" + antiScam.getLanguage().get("sender", guildId) + "**: " +
-                                member.getMention() + " (" + member.getTag() + ")\n" +
-                                "**" + antiScam.getLanguage().get("channel", guildId) + "**: " + channel.getMention() +
-                                " (" + channel.getName() + ")\n" +
-                                "" +
-                                "**" + antiScam.getLanguage().get("violation_score", guildId) + "**: " + score +
-                                " (**" + type.name() + "**) " +
-                                "*(" + antiScam.getLanguage().get("auto_delete_information", guildId) + ")")
-                            .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("message", guildId),
-                                message.getContent(), false))
-                            .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp", guildId),
-                                "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                            .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("ids", guildId),
-                                "```ini" + "\n" +
-                                "userId = " + member.getId().asString() + "\n" +
-                                "channelId = " + channel.getId().asString() + "\n" +
-                                "messageId = " + message.getId().asString() + "\n" +
-                                "```", false))
-                            .build());
+                        antiScam.getMongoDB().getLogCollection().sendMessage(guildId, antiScam.getTemplate().getScamDeleted(member,
+                            channel, message, score, type, guildId));
                         return;
                     }
 
-                    antiScam.getMongoDB().getLogCollection().sendMessage(guildId, EmbedCreateSpec.builder()
-                        .title(":face_with_raised_eyebrow: | " + antiScam.getLanguage().get("potential_scam_detected", guildId))
-                        .description("**" + antiScam.getLanguage().get("sender", guildId) + "**: " + member.getMention() +
-                            " (" + member.getTag() + ")\n" +
-                            "**" + antiScam.getLanguage().get("channel", guildId) + "**: " + channel.getMention() +
-                            " (" + channel.getName() + ")\n" +
-                            "" +
-                            "**" + antiScam.getLanguage().get("violation_score", guildId) + "**: " + score +
-                            " (**" + type.name() + "**)")
-                        .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("message", guildId),
-                            message.getContent(), false))
-                        .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("timestamp", guildId),
-                            "<t:" + Instant.now().getEpochSecond() + ":f>", false))
-                        .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("punishment", guildId),
-                            action, false))
-                        .addField(EmbedCreateFields.Field.of(antiScam.getLanguage().get("ids", guildId),
-                            "```ini" + "\n" +
-                                "userId = " + member.getId().asString() + "\n" +
-                                "channelId = " + channel.getId().asString() + "\n" +
-                                "messageId = " + message.getId().asString() + "\n" +
-                                "```", false))
-                        .build());
+                    antiScam.getMongoDB().getLogCollection().sendMessage(guildId, antiScam.getTemplate().getScamDetected(member,
+                        channel, message, score, type, action, guildId));
                 });
             });
         });
